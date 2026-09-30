@@ -53,6 +53,8 @@ class GeminiLLM:
             max_output_tokens=self.max_output_tokens,
             response_mime_type="application/json",
             response_json_schema=schema,
+            # No tools are sent, so skip the SDK's function-calling loop (and its log warning).
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )
         if self.thinking_level:
             config.thinking_config = types.ThinkingConfig(
