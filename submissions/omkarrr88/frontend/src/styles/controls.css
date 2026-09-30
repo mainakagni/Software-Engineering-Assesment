@@ -1,0 +1,265 @@
+/* --- Controls -------------------------------------------------------------------------------- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 36px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 550;
+  white-space: nowrap;
+  transition:
+    background-color 150ms var(--ease),
+    border-color 150ms var(--ease),
+    color 150ms var(--ease),
+    opacity 150ms var(--ease),
+    transform 100ms var(--ease);
+}
+
+.button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.button:disabled {
+  opacity: 0.45;
+}
+
+/* Working, not unavailable: stays solid while the request runs. */
+.button.busy:disabled {
+  opacity: 0.85;
+  cursor: progress;
+}
+
+.button.primary {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.button.primary:hover:not(:disabled) {
+  border-color: var(--ink-hover);
+  background: var(--ink-hover);
+}
+
+.button.ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-2);
+}
+
+.button.ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.button.danger {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: var(--surface);
+}
+
+.button.danger:hover:not(:disabled) {
+  border-color: var(--danger-hover);
+  background: var(--danger-hover);
+}
+
+.button.small {
+  min-height: 30px;
+  padding: 0 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+}
+
+.button.block {
+  width: 100%;
+  min-height: 42px;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  transition:
+    background-color 150ms var(--ease),
+    color 150ms var(--ease),
+    opacity 150ms var(--ease);
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.icon-button.danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.link-button:hover:not(:disabled) {
+  color: var(--accent-hover);
+}
+
+.link-button:disabled {
+  color: var(--muted);
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.field-label {
+  font-size: 0.875rem;
+  font-weight: 550;
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 0.9375rem;
+  transition:
+    border-color 150ms var(--ease),
+    box-shadow 150ms var(--ease);
+}
+
+.input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.input:hover {
+  border-color: color-mix(in srgb, var(--border-strong) 55%, var(--text));
+}
+
+.input:focus-visible {
+  border-color: var(--focus);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.input-wrap {
+  position: relative;
+}
+
+.input-wrap .input {
+  padding-right: 2.75rem;
+}
+
+.input-wrap .icon-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
+.callout {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.callout .icon {
+  margin-top: 0.1rem;
+}
+
+.callout.info {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.callout.info .icon {
+  color: var(--accent);
+}
+
+.callout.error {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.callout ul {
+  display: grid;
+  gap: 0.25rem;
+  padding-left: 1rem;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.section-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.count {
+  padding: 0 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 550;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+
+.skeleton {
+  display: block;
+  height: 0.75rem;
+  border-radius: 4px;
+  background: var(--surface-3);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.skeleton-block {
+  background: var(--surface-3);
+  animation: pulse 1.6s ease-in-out infinite;
+}

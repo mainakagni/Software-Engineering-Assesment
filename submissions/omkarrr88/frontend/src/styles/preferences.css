@@ -1,0 +1,28 @@
+/* --- Touch and motion ---------------------------------------------------------------------- */
+
+@media (pointer: coarse) {
+  .button,
+  .input {
+    min-height: 44px;
+  }
+
+  .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .input-wrap .icon-button {
+    top: 0;
+    right: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

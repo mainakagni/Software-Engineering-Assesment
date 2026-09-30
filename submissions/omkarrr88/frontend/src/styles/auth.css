@@ -1,0 +1,250 @@
+/* --- Brand --------------------------------------------------------------------------------- */
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text);
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.logo {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--ink);
+}
+
+.logo-page {
+  fill: none;
+  stroke: var(--on-ink);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.logo-line {
+  fill: none;
+  stroke: var(--on-ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.logo-mark {
+  fill: var(--brand-mark);
+}
+
+/* --- Sign in ------------------------------------------------------------------------------- */
+
+.auth {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.auth-aside {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .auth {
+    grid-template-columns: minmax(440px, 1fr) minmax(480px, 1.1fr);
+  }
+
+  .auth-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    padding: 2.25rem 3.5rem;
+    border-right: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+}
+
+.auth-story {
+  display: grid;
+  gap: 2.75rem;
+  margin-block: auto;
+  padding-bottom: 2.25rem;
+}
+
+.auth-pitch {
+  display: grid;
+  gap: 1.75rem;
+  max-width: 30rem;
+}
+
+.auth-pitch h2 {
+  font-size: clamp(2.25rem, 3vw, 2.875rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.auth-points {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0;
+  list-style: none;
+  color: var(--text-2);
+  font-size: 0.9375rem;
+}
+
+.auth-points li {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+}
+
+.auth-points .icon {
+  margin-top: 0.1rem;
+  color: var(--muted);
+}
+
+.sample {
+  display: grid;
+  gap: 0.7rem;
+  max-width: 30rem;
+  padding: 1.35rem 1.4rem 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.875rem;
+  animation: rise 400ms var(--ease) both;
+}
+
+.sample-label {
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sample-question {
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.sample-answer {
+  color: var(--text-2);
+  font-size: 0.9375rem;
+}
+
+.sample-source {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.25rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.sample-source-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.sample-source-head strong {
+  color: var(--text);
+  font-weight: 550;
+}
+
+.sample-source blockquote {
+  font-family: var(--font-serif);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.auth-main {
+  display: grid;
+  place-items: center;
+  padding: 2.5rem 1rem;
+}
+
+.auth-panel {
+  display: grid;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 380px;
+}
+
+.auth-panel-brand {
+  margin-bottom: 0.75rem;
+}
+
+@media (min-width: 960px) {
+  .auth-panel-brand {
+    display: none;
+  }
+}
+
+.auth-heading {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.auth-heading h1 {
+  font-size: 2rem;
+  line-height: 1.15;
+}
+
+.auth-heading p {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.segmented {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius);
+  background: var(--surface-3);
+}
+
+.segmented button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 550;
+  transition:
+    background-color 150ms var(--ease),
+    color 150ms var(--ease),
+    box-shadow 150ms var(--ease);
+}
+
+.segmented button:hover {
+  color: var(--text);
+}
+
+.segmented button[aria-selected='true'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.auth-form {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.auth-form .button.block {
+  margin-top: 0.25rem;
+}
+
+.auth-foot {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
