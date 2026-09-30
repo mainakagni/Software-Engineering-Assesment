@@ -1,0 +1,54 @@
+import pytest
+from pydantic import ValidationError
+
+from app.config import DEV_JWT_SECRET
+from tests.conftest import make_test_settings
+
+
+@pytest.mark.parametrize(
+    ("given", "expected"),
+    [
+        ("postgres://u:p@h:5432/d", "postgresql+psycopg://u:p@h:5432/d"),
+        ("postgresql://u:p@h:5432/d", "postgresql+psycopg://u:p@h:5432/d"),
+        ("postgresql+psycopg://u:p@h:5432/d", "postgresql+psycopg://u:p@h:5432/d"),
+    ],
+)
+def test_database_url_always_uses_psycopg(given: str, expected: str) -> None:
+    assert make_test_settings(database_url=given).database_url == expected
+
+
+def test_production_rejects_the_development_jwt_secret() -> None:
+    with pytest.raises(ValidationError, match="JWT_SECRET"):
+        make_test_settings(app_env="production", jwt_secret=DEV_JWT_SECRET)
+
+
+def test_production_rejects_a_short_jwt_secret() -> None:
+    with pytest.raises(ValidationError, match="JWT_SECRET"):
+        make_test_settings(app_env="production", jwt_secret="too-short")
+
+
+def test_production_requires_a_gemini_key_when_gemini_is_used() -> None:
+    with pytest.raises(ValidationError, match="GEMINI_API_KEY"):
+        make_test_settings(
+            app_env="production", jwt_secret="x" * 40, llm_provider="gemini", gemini_api_key=None
+        )
+
+
+def test_production_with_fake_providers_needs_no_key() -> None:
+    settings = make_test_settings(app_env="production", jwt_secret="x" * 40)
+    assert settings.gemini_api_key is None
+
+
+def test_embedding_dimension_must_match_the_schema() -> None:
+    with pytest.raises(ValidationError, match="EMBEDDING_DIM"):
+        make_test_settings(embedding_dim=1536)
+
+
+def test_cors_origins_are_split_and_trimmed() -> None:
+    settings = make_test_settings(cors_origins=" http://a.test, ,http://b.test ")
+    assert settings.cors_origin_list == ["http://a.test", "http://b.test"]
+    assert make_test_settings().cors_origin_list == []
+
+
+def test_upload_limit_in_bytes() -> None:
+    assert make_test_settings(max_upload_mb=2).max_upload_bytes == 2 * 1024 * 1024
