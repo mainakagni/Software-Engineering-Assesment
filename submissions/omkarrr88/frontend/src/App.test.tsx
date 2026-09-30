@@ -37,6 +37,6 @@ describe('App', () => {
     render(<App />)
 
     expect(await screen.findByText(/taking too long to respond/)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'DocuMind' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument()
   })
 })

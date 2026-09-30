@@ -43,4 +43,28 @@ describe('AuthForm', () => {
     expect(screen.getByRole('button', { name: 'Log in' })).toBeEnabled()
     expect(onAuthenticated).not.toHaveBeenCalled()
   })
+
+  it('shows the password on request', async () => {
+    render(<AuthForm notice={null} onAuthenticated={vi.fn<(user: User) => void>()} />)
+    const password = screen.getByLabelText('Password')
+
+    expect(password).toHaveAttribute('type', 'password')
+    await userEvent.click(screen.getByRole('button', { name: 'Show password' }))
+    expect(password).toHaveAttribute('type', 'text')
+    await userEvent.click(screen.getByRole('button', { name: 'Hide password' }))
+    expect(password).toHaveAttribute('type', 'password')
+  })
+
+  it('moves between the tabs with the arrow keys', async () => {
+    render(<AuthForm notice={null} onAuthenticated={vi.fn<(user: User) => void>()} />)
+
+    screen.getByRole('tab', { name: 'Log in' }).focus()
+    await userEvent.keyboard('{ArrowRight}')
+
+    const signUp = screen.getByRole('tab', { name: 'Sign up' })
+    expect(signUp).toHaveFocus()
+    expect(signUp).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('heading', { name: 'Create your account' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription('At least 8 characters.')
+  })
 })
