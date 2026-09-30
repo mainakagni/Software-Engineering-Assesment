@@ -217,7 +217,7 @@ def main(argv: list[str] | None = None) -> int:
                 settings.embedding_model if settings.embedding_provider == "gemini" else "fake"
             ),
             "retrieval_top_k": settings.retrieval_top_k,
-            "retrieval_min_similarity": settings.retrieval_min_similarity,
+            "retrieval_min_similarity": settings.min_similarity,
             "chunk_size_chars": settings.chunk_size_chars,
             "chunk_overlap_chars": settings.chunk_overlap_chars,
         },

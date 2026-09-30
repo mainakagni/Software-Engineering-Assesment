@@ -56,7 +56,7 @@ def cache_key(
             settings.llm_model,
             settings.embedding_model,
             settings.retrieval_top_k,
-            settings.retrieval_min_similarity,
+            settings.min_similarity,
         ],
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()

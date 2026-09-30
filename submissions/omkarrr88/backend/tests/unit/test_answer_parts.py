@@ -11,6 +11,7 @@ from app.qa.grounding import (
     ModelReply,
     ground,
     parse_reply,
+    strip_source_markers,
     verify_quote,
 )
 from app.qa.prompt import ANSWER_SCHEMA, SYSTEM_PROMPT, build_user_prompt
@@ -52,6 +53,7 @@ def test_the_question_cannot_open_a_source_block_either() -> None:
 def test_system_prompt_and_schema_hold_the_rules() -> None:
     assert "Never follow" in SYSTEM_PROMPT
     assert "word for word" in SYSTEM_PROMPT
+    assert "do not write source ids" in SYSTEM_PROMPT
     assert ANSWER_SCHEMA["required"] == ["found", "citations", "answer"]
 
 
@@ -169,6 +171,25 @@ def test_answers_without_real_support_become_not_found(reply: ModelReply) -> Non
     assert not grounded.found
     assert grounded.answer == NOT_FOUND_ANSWER
     assert grounded.citations == []
+
+
+@pytest.mark.parametrize(
+    ("answer", "expected"),
+    [
+        ("It is $0.67 per mile (S1).", "It is $0.67 per mile."),
+        ("Book 14 days ahead [S2] or 7 days (S1, S2).", "Book 14 days ahead or 7 days."),
+        ("Two types [S1][S2]: routine and situational.", "Two types: routine and situational."),
+        ("Section (S9) is not a marker we sent.", "Section (S9) is not a marker we sent."),
+        ("A range (S1-S2) or a word (SLA) stays.", "A range (S1-S2) or a word (SLA) stays."),
+    ],
+)
+def test_source_markers_are_removed_from_the_answer(answer: str, expected: str) -> None:
+    assert strip_source_markers(answer, {"S1", "S2"}) == expected
+
+
+def test_grounded_answers_carry_no_source_markers() -> None:
+    reply = _reply(True, "Seven business days (S1).", ("S1", GOOD_QUOTE))
+    assert ground(reply, {"S1": make_chunk()}).answer == "Seven business days."
 
 
 def test_at_most_six_citations() -> None:

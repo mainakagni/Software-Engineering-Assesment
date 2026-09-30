@@ -56,6 +56,7 @@ def test_gemini_request_and_usage() -> None:
     assert config.response_mime_type == "application/json"
     assert config.response_json_schema == ANSWER_SCHEMA
     assert config.thinking_config.thinking_level.value == "LOW"
+    assert config.automatic_function_calling.disable is True
     assert (result.prompt_tokens, result.output_tokens, result.thinking_tokens) == (900, 80, 40)
 
 
