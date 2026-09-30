@@ -29,8 +29,9 @@ def ask_question(
 ) -> Envelope[AnswerOut]:
     """Answers from your ready documents (or only the selected ones), with citations.
 
-    When the documents do not contain the answer, `found` is false and the answer says so.
-    Questions are limited per user per minute and per day.
+    When the documents do not contain the answer, `found` is false and the answer says so. Asking
+    the same question about the same documents again within a day returns the stored answer
+    (`cached` is true). Questions are limited per user per minute and per day.
     """
     record = service.ask(
         session, user.id, body.question, body.document_ids,
