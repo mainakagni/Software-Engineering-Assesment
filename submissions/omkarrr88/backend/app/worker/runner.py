@@ -7,6 +7,7 @@ Setting the stop event (SIGTERM/SIGINT) ends both after the current job.
 
 import logging
 import threading
+import time
 from collections.abc import Callable
 
 from sqlalchemy.orm import Session, sessionmaker
@@ -17,11 +18,8 @@ logger = logging.getLogger(__name__)
 
 # Takes a session factory, processes at most one job, returns True if it did any work.
 JobHandler = Callable[[sessionmaker[Session]], bool]
-
-
-def no_jobs(_: sessionmaker[Session]) -> bool:
-    """Placeholder handler until ingestion exists: there is never anything to do."""
-    return False
+# Housekeeping run every `maintenance_interval` seconds (e.g. requeueing stuck jobs).
+Maintenance = Callable[[sessionmaker[Session]], object]
 
 
 def run_worker(
@@ -29,9 +27,11 @@ def run_worker(
     worker_id: str,
     stop: threading.Event,
     *,
+    handle_next_job: JobHandler,
     poll_interval: float,
     heartbeat_interval: float,
-    handle_next_job: JobHandler = no_jobs,
+    maintenance: Maintenance | None = None,
+    maintenance_interval: float = 60.0,
 ) -> None:
     write_heartbeat(session_factory, worker_id)
     beat = threading.Thread(
@@ -43,7 +43,11 @@ def run_worker(
     beat.start()
     logger.info("worker.started", extra={"worker_id": worker_id})
 
+    next_maintenance = time.monotonic()
     while not stop.is_set():
+        if maintenance is not None and time.monotonic() >= next_maintenance:
+            _run_maintenance(maintenance, session_factory)
+            next_maintenance = time.monotonic() + maintenance_interval
         if not _handle_safely(handle_next_job, session_factory):
             stop.wait(poll_interval)  # returns early as soon as a stop is requested
 
@@ -62,6 +66,13 @@ def _handle_safely(handle_next_job: JobHandler, session_factory: sessionmaker[Se
         # One broken job must not kill the worker; the job handler records its own failure.
         logger.exception("worker.loop_error")
         return False
+
+
+def _run_maintenance(maintenance: Maintenance, session_factory: sessionmaker[Session]) -> None:
+    try:
+        maintenance(session_factory)
+    except Exception:
+        logger.exception("worker.maintenance_error")
 
 
 def _heartbeat_loop(

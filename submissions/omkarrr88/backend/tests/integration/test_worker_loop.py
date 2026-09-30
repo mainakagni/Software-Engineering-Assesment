@@ -17,7 +17,12 @@ def _run_in_thread(db: sessionmaker[Session], stop: threading.Event, **kwargs) -
     worker = threading.Thread(
         target=run_worker,
         args=(db, "test-worker", stop),
-        kwargs={"poll_interval": 0.01, "heartbeat_interval": 0.05, **kwargs},
+        kwargs={
+            "handle_next_job": lambda _: False,
+            "poll_interval": 0.01,
+            "heartbeat_interval": 0.05,
+            **kwargs,
+        },
     )
     worker.start()
     return worker
@@ -67,3 +72,20 @@ def test_a_failing_job_handler_does_not_stop_the_worker(db: sessionmaker[Session
     stop.set()
     worker.join(timeout=3)
     assert not worker.is_alive()
+
+
+def test_maintenance_runs_periodically_and_its_errors_are_contained(
+    db: sessionmaker[Session],
+) -> None:
+    runs: list[int] = []
+
+    def maintenance(_: sessionmaker[Session]) -> None:
+        runs.append(1)
+        raise RuntimeError("cleanup failed")
+
+    stop = threading.Event()
+    worker = _run_in_thread(db, stop, maintenance=maintenance, maintenance_interval=0.02)
+    assert _wait_until(lambda: len(runs) >= 3)
+    assert worker.is_alive()
+    stop.set()
+    worker.join(timeout=3)
