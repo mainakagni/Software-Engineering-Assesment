@@ -57,9 +57,12 @@ def prepare_document(
         size=settings.chunk_size_chars,
         overlap=settings.chunk_overlap_chars,
     )
-    if len(chunks) > settings.max_chunks_per_document:
+    limit = settings.max_chunks_per_document
+    if len(chunks) > limit:
+        # Checked before anything is embedded, so a document that is too long spends no quota.
         raise ExtractionError(
-            f"The document is too long (more than {settings.max_chunks_per_document} chunks)."
+            f"The document is too long: it splits into {len(chunks):,} passages, and the limit "
+            f"is {limit:,}. Upload a shorter document or a part of it."
         )
     vectors = embedder.embed_documents([embedding_text(c) for c in chunks], title=filename)
     return PreparedDocument(

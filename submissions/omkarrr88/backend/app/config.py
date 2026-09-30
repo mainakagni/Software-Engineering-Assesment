@@ -79,7 +79,9 @@ class Settings(DatabaseSettings):
     max_upload_mb: int = 10
     max_documents_per_user: int = 20
     max_pdf_pages: int = 300
-    max_chunks_per_document: int = 1500
+    # Each passage costs one embedding request, and Gemini's free tier allows 1,000 a day for the
+    # whole demo. At 300 (about 150 PDF pages), one document cannot use more than a third of that.
+    max_chunks_per_document: int = 300
 
     questions_per_minute: int = 10
     questions_per_day: int = 100
