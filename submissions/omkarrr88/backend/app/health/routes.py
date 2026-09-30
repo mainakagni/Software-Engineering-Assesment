@@ -34,7 +34,9 @@ def liveness() -> Envelope[Liveness]:
 @router.get(
     "/health",
     response_model=Envelope[HealthReport],
-    responses={503: {"description": "At least one dependency is down"}},
+    responses={
+        503: {"model": Envelope[HealthReport], "description": "At least one dependency is down"}
+    },
 )
 def health(request: Request, response: Response, settings: SettingsDep) -> Envelope[HealthReport]:
     """Reports whether the database, the vector store, the job queue and the worker are working."""
