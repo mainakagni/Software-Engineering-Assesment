@@ -1,6 +1,8 @@
 import type { Answer, AuthResult, DocumentItem, FieldError, User } from './types'
 
 const TOKEN_KEY = 'documind.token'
+/** Reads give up after this long. Asking and uploading are bounded by the server's own timeouts. */
+const READ_TIMEOUT_MS = 20_000
 
 interface Envelope<T> {
   success: boolean
@@ -89,9 +91,24 @@ async function readEnvelope<T>(response: Response): Promise<Envelope<T> | null> 
   }
 }
 
+function unreachable(caught: unknown): ApiError {
+  if (caught instanceof DOMException && caught.name === 'TimeoutError') {
+    return new ApiError({
+      status: 0,
+      code: 'timeout',
+      message: 'The server is taking too long to respond. Please try again in a moment.',
+    })
+  }
+  return new ApiError({
+    status: 0,
+    code: 'network_error',
+    message: 'Could not reach the server. Check your connection and try again.',
+  })
+}
+
 async function request<T>(
   path: string,
-  { json, ...init }: RequestInit & { json?: unknown } = {},
+  { json, timeoutMs, ...init }: RequestInit & { json?: unknown; timeoutMs?: number } = {},
 ): Promise<T> {
   const headers = new Headers(init.headers)
   const token = tokenStore.get()
@@ -103,15 +120,13 @@ async function request<T>(
   }
   // For FormData bodies no Content-Type is set: the browser adds it with the multipart boundary.
 
+  const signal = timeoutMs === undefined ? init.signal : AbortSignal.timeout(timeoutMs)
+
   let response: Response
   try {
-    response = await fetch(`/api${path}`, { ...init, headers, body })
-  } catch {
-    throw new ApiError({
-      status: 0,
-      code: 'network_error',
-      message: 'Could not reach the server. Check your connection and try again.',
-    })
+    response = await fetch(`/api${path}`, { ...init, headers, body, signal })
+  } catch (caught) {
+    throw unreachable(caught)
   }
   if (response.status === 204) return undefined as T
 
@@ -143,10 +158,11 @@ async function authenticate(path: string, email: string, password: string): Prom
 export const api = {
   signup: (email: string, password: string) => authenticate('/auth/signup', email, password),
   login: (email: string, password: string) => authenticate('/auth/login', email, password),
-  me: () => request<User>('/auth/me'),
+  me: () => request<User>('/auth/me', { timeoutMs: READ_TIMEOUT_MS }),
 
   // The API caps an account at 20 documents, so one page of 100 holds them all.
-  listDocuments: () => request<DocumentItem[]>('/documents?limit=100'),
+  listDocuments: () =>
+    request<DocumentItem[]>('/documents?limit=100', { timeoutMs: READ_TIMEOUT_MS }),
   uploadDocument: (file: File) => {
     const form = new FormData()
     form.append('file', file)
@@ -160,7 +176,8 @@ export const api = {
       method: 'POST',
       json: { question, document_ids: documentIds },
     }),
-  listQuestions: (limit = 20) => request<Answer[]>(`/questions?limit=${limit}`),
+  listQuestions: (limit = 20) =>
+    request<Answer[]>(`/questions?limit=${limit}`, { timeoutMs: READ_TIMEOUT_MS }),
 }
 
 /** A message to show for any error thrown by the api functions. */

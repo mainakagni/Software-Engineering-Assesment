@@ -47,7 +47,13 @@ export default function App() {
     setNotice(null)
   }
 
-  if (checking) return <p className="loading">Loading...</p>
+  if (checking) {
+    return (
+      <p className="loading" role="status">
+        Checking your session...
+      </p>
+    )
+  }
   if (!user) {
     return (
       <AuthForm

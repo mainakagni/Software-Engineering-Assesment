@@ -7,8 +7,9 @@ function stubFetch(...responses: (Response | Error)[]) {
   const fetchMock = vi.fn<typeof fetch>(async () => {
     const next = responses.shift()
     if (!next) throw new Error('unexpected request')
-    if (next instanceof Error) throw next
-    return next
+    // Anything else is thrown, as fetch would (jsdom's DOMException is not an Error).
+    if (next instanceof Response) return next
+    throw next
   })
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
@@ -108,6 +109,13 @@ describe('api client', () => {
 
     await expect(api.me()).rejects.toMatchObject({ status: 0, code: 'network_error' })
     await expect(api.me()).rejects.toMatchObject({ status: 502, code: 'http_error' })
+  })
+
+  it('gives up on slow reads and says the server is taking too long', async () => {
+    const fetchMock = stubFetch(new DOMException('The operation timed out.', 'TimeoutError'))
+
+    await expect(api.listDocuments()).rejects.toMatchObject({ status: 0, code: 'timeout' })
+    expect(sent(fetchMock).init.signal).toBeInstanceOf(AbortSignal)
   })
 
   it('returns nothing for 204 responses', async () => {
