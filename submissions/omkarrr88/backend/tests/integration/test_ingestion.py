@@ -14,11 +14,12 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import Settings
-from app.db.models import Chunk, Document, DocumentBlob, IngestionJob
+from app.db.models import Chunk, Document, DocumentBlob, IngestionJob, RateLimitCounter
 from app.ingestion.pipeline import prepare_document
 from app.logging_config import JsonFormatter
 from app.providers.errors import ProviderError
 from app.providers.fakes import FakeEmbedder
+from app.ratelimit.budget import KEY
 from app.worker.heartbeat import write_heartbeat
 from app.worker.jobs import backoff_seconds, process_next_job
 from app.worker.queue import claim_next_job, complete_job, requeue_stale_jobs
@@ -282,6 +283,24 @@ def test_a_used_up_passage_budget_says_so(client: TestClient, db: sessionmaker[S
         r"and upload it again in 2[34] hours\.$",
         second.error or "",
     )
+
+
+def test_a_markdown_file_with_only_headings_fails_with_a_reason(
+    client: TestClient, db: sessionmaker[Session]
+) -> None:
+    upload(client, signup(client), "headings.md", b"# Travel\n\n## Hotels\n")
+    run_job(db, make_test_settings())
+
+    document = _document(db)
+    assert (document.status, document.error) == (
+        "failed",
+        "The file has no text to search, only headings.",
+    )
+    assert _job(db).status == "failed"  # at once, not after retries
+    with db() as session:
+        assert (
+            session.scalars(select(RateLimitCounter).where(RateLimitCounter.key == KEY)).all() == []
+        )
 
 
 def test_a_job_is_claimed_only_once(client: TestClient, db: sessionmaker[Session]) -> None:

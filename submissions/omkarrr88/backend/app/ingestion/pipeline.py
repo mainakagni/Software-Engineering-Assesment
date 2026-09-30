@@ -60,6 +60,9 @@ def prepare_document(
         size=settings.chunk_size_chars,
         overlap=settings.chunk_overlap_chars,
     )
+    if not chunks:
+        # Only a Markdown file with nothing but headings gets here; other empty files fail earlier.
+        raise ExtractionError("The file has no text to search, only headings.")
     limit = settings.max_chunks_per_document
     if len(chunks) > limit:
         # Checked before anything is embedded, so a document that is too long spends no quota.
