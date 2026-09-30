@@ -17,13 +17,28 @@ DEV_JWT_SECRET = "dev-only-secret-never-use-in-production"  # noqa: S105
 VECTOR_DIM = 768  # size of the chunks.embedding column in the database
 
 
-class Settings(BaseSettings):
+class DatabaseSettings(BaseSettings):
+    """The part of the configuration that migrations need, so they run without provider keys."""
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    app_env: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
-
     database_url: str = "postgresql+psycopg://documind:documind@localhost:5433/documind"
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_psycopg_driver(cls, url: str) -> str:
+        # Hosting providers hand out postgres:// or postgresql:// URLs; SQLAlchemy needs to be
+        # told to use psycopg 3, otherwise it looks for psycopg2.
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+psycopg://" + url.removeprefix(prefix)
+        return url
+
+
+class Settings(DatabaseSettings):
+    app_env: Literal["development", "test", "production"] = "development"
+
     db_pool_size: int = 5
     db_max_overflow: int = 5
 
@@ -45,6 +60,9 @@ class Settings(BaseSettings):
     embedding_batch_size: int = 50
     provider_max_retries: int = 2
     provider_max_retry_wait_seconds: float = 10
+    # Nobody is waiting on the worker, so it can sit out a per-minute rate limit.
+    worker_provider_max_retries: int = 4
+    worker_provider_max_retry_wait_seconds: float = 65
 
     retrieval_top_k: int = 6
     retrieval_min_similarity: float = 0.35
@@ -84,16 +102,6 @@ class Settings(BaseSettings):
 
     static_dir: str = "app/static"
 
-    @field_validator("database_url")
-    @classmethod
-    def _use_psycopg_driver(cls, url: str) -> str:
-        # Hosting providers hand out postgres:// or postgresql:// URLs; SQLAlchemy needs to be
-        # told to use psycopg 3, otherwise it looks for psycopg2.
-        for prefix in ("postgres://", "postgresql://"):
-            if url.startswith(prefix):
-                return "postgresql+psycopg://" + url.removeprefix(prefix)
-        return url
-
     @model_validator(mode="after")
     def _check_consistency(self) -> Self:
         if self.embedding_dim != VECTOR_DIM:
@@ -102,9 +110,12 @@ class Settings(BaseSettings):
             secret = self.jwt_secret.get_secret_value()
             if len(secret) < 32 or secret == DEV_JWT_SECRET:
                 raise ValueError("JWT_SECRET must be a random string of at least 32 characters")
-            uses_gemini = "gemini" in (self.llm_provider, self.embedding_provider)
-            if uses_gemini and not self.gemini_api_key:
-                raise ValueError("GEMINI_API_KEY is required when a Gemini provider is selected")
+        uses_gemini = "gemini" in (self.llm_provider, self.embedding_provider)
+        if uses_gemini and not self.gemini_api_key:
+            raise ValueError(
+                "GEMINI_API_KEY is required when LLM_PROVIDER or EMBEDDING_PROVIDER is gemini "
+                "(set both to fake to run without a key)"
+            )
         return self
 
     @property

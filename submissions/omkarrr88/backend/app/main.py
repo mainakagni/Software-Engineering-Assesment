@@ -20,6 +20,7 @@ Click **Authorize** and log in with your email and password to try the protected
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
+    """Builds the app. uvicorn runs it with `app.main:create_app --factory`."""
     settings = settings or get_settings()
     configure_logging(settings.log_level)
 
@@ -43,6 +44,3 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(auth_router)
     return app
-
-
-app = create_app()
