@@ -14,6 +14,7 @@ from app.qa.grounding import (
     verify_quote,
 )
 from app.qa.prompt import ANSWER_SCHEMA, SYSTEM_PROMPT, build_user_prompt
+from app.qa.retrieval import supports_iterative_scan
 from tests.conftest import make_test_settings
 from tests.qa_factory import PASSAGE, make_chunk
 
@@ -204,3 +205,15 @@ def test_cost_estimate_counts_thinking_as_output() -> None:
 )
 def test_question_normalisation_for_the_cache(variant: str) -> None:
     assert normalise_question(variant) == "what is the hotel limit"
+
+
+# --- retrieval ----------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [("0.8.0", True), ("0.10.1", True), ("1.0", True), ("0.7.4", False), ("0.5", False)],
+)
+def test_iterative_scan_needs_pgvector_0_8(version: str, expected: bool) -> None:
+    assert supports_iterative_scan(version) is expected
+    assert supports_iterative_scan(None) is False

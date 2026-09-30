@@ -44,6 +44,16 @@ def test_healthy_when_everything_works(client: TestClient, db: sessionmaker[Sess
     assert body["checks"]["queue"]["details"]["queued_jobs"] == 0
 
 
+def test_head_requests_get_the_status_without_a_body(
+    client: TestClient, db: sessionmaker[Session]
+) -> None:
+    assert client.head("/health").status_code == 503  # no worker yet
+    _heartbeat(db, age_seconds=1)
+    for path in ("/health", "/health/live"):
+        response = client.head(path)
+        assert (response.status_code, response.content) == (200, b"")
+
+
 def test_degraded_without_a_worker_heartbeat(client: TestClient) -> None:
     response = client.get("/health")
     body = response.json()["data"]

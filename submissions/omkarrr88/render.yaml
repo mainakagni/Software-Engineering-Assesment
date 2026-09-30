@@ -1,0 +1,55 @@
+# Render Blueprint for the live demo. In the Render dashboard choose New > Blueprint, pick this
+# repository, and set the Blueprint Path to submissions/omkarrr88/render.yaml. Render then asks for
+# the values marked sync: false (the Gemini API key and the demo account's password); everything
+# else is set here or generated.
+#
+# The free plan has no background workers, so one web service runs both the API and the worker
+# (python -m app.supervisor). It sleeps after 15 minutes without traffic and takes about a minute
+# to wake up. A free database expires 30 days after it is created.
+version: "1"
+
+services:
+  - type: web
+    name: documind
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: submissions/omkarrr88/backend/Dockerfile
+    dockerContext: submissions/omkarrr88
+    dockerCommand: python -m app.supervisor
+    healthCheckPath: /health/live
+    # Deploy a new commit on main only once its CI checks have passed.
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - submissions/omkarrr88/**
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: documind-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      # Render's proxy sets X-Forwarded-For; the rate limits read the client IP from it.
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
+      - key: SEED_DEMO
+        value: "true"
+      - key: DEMO_USER_EMAIL
+        value: demo@example.com
+      - key: DEMO_USER_PASSWORD
+        sync: false
+
+databases:
+  - name: documind-db
+    plan: free
+    region: singapore
+    postgresMajorVersion: "17"
+    databaseName: documind
+    user: documind
+    # No connections from outside Render: only the web service reaches it.
+    ipAllowList: []
