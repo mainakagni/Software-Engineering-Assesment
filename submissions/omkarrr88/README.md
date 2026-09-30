@@ -39,8 +39,9 @@ Questions to try:
 ![An answer from the demo documents, with its source: the document, the section, the similarity score and the quote](docs/screenshots/answer.png)
 
 - Sign up and log in with email and password.
-- Upload PDF, `.txt` and `.md` files up to 10 MB each. A background worker processes them, and the status
-  goes from queued to processing to ready (or failed, with the reason).
+- Upload PDF, `.txt` and `.md` files of up to 10 MB and 300 passages (about 150 PDF pages) each. A
+  background worker processes them, and the status goes from queued to processing to ready (or failed, with
+  the reason).
 - Ask a question across all your documents or only the ones you pick. The answer cites its sources: the
   document, the page or section, the quote, and the passage it came from with the quote highlighted.
 - When the documents do not contain the answer, it says "I couldn't find this in your documents" instead
@@ -216,8 +217,10 @@ What breaks first at scale:
   message broker.
 - **The worker and the quota.** One worker process handles one document at a time, and big uploads wait
   in line. More worker processes can share the queue without changes, since jobs are claimed with
-  `SKIP LOCKED`. The Gemini free tier also caps requests per minute and per day. The daily limit of 200
-  questions protects the demo but would block real use.
+  `SKIP LOCKED`. The Gemini free tier also caps requests per minute and per day: 1,000 embedding
+  requests a day for the whole demo, one for each passage uploaded and one for each new question. A
+  document may have at most 300 passages, so one upload cannot use up the day, and the limit of 200
+  questions a day protects the rest. Both limits would block real use; a paid plan removes them.
 - **The free plan.** The service sleeps when idle, has 512 MB of memory, and the free database expires.
   A paid plan would also let the worker run as its own service.
 - **Scanned PDFs.** There is no OCR, so a PDF without a text layer fails with a clear reason.

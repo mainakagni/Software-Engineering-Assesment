@@ -495,5 +495,11 @@ The sections above are the plan as written before the code. This is what changed
 
     The fonts are self-hosted, so the content security policy still allows nothing outside the app's own
     origin.
-14. **Not built: hybrid search and re-ranking** (section 8.6). There was not enough time to build them and
+14. **A passage limit that fits the free quota** (section 9, resource limits). The plan allowed 1,500
+    chunks per document. Each chunk is one embedding request, and the Gemini free tier allows 1,000 a day for
+    the whole deployment. So one long PDF could use up a whole day's quota: it would fail partway through,
+    and every question would fail until the next day. The limit is now 300 passages (about 150 PDF pages).
+    It is checked after chunking and before anything is sent, and the error gives the document's passage
+    count.
+15. **Not built: hybrid search and re-ranking** (section 8.6). There was not enough time to build them and
     measure them properly. They are the first items under next steps in the README and in `EVALUATION.md`.
