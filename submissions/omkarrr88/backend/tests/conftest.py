@@ -96,3 +96,12 @@ def client(settings: Settings, db: sessionmaker[Session]) -> Iterator[TestClient
     app.state.session_factory = db
     with TestClient(app) as test_client:
         yield test_client
+
+
+def signup(
+    client: TestClient, email: str = "alice@example.com", password: str = "correct horse battery"
+) -> dict[str, str]:
+    """Creates an account through the API and returns the Authorization header for it."""
+    response = client.post("/api/auth/signup", json={"email": email, "password": password})
+    assert response.status_code == 201, response.text
+    return {"Authorization": f"Bearer {response.json()['data']['access_token']}"}

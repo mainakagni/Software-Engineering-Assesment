@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.auth.routes import router as auth_router
 from app.config import Settings, get_settings
 from app.db.session import make_session_factory
 from app.errors import register_error_handlers
@@ -40,6 +41,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     register_error_handlers(app)
     app.include_router(health_router)
+    app.include_router(auth_router)
     return app
 
 
