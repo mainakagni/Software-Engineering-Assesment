@@ -22,11 +22,11 @@
     transform 100ms var(--ease);
 }
 
-.button:hover:not(:disabled) {
+.button:hover:not(:disabled, .busy) {
   background: var(--surface-2);
 }
 
-.button:active:not(:disabled) {
+.button:active:not(:disabled, .busy) {
   transform: scale(0.98);
 }
 
@@ -34,8 +34,8 @@
   opacity: 0.45;
 }
 
-/* Working, not unavailable: stays solid while the request runs. */
-.button.busy:disabled {
+/* Working, not unavailable: keeps its colours and its focus while the request runs. */
+.button.busy {
   opacity: 0.85;
   cursor: progress;
 }
@@ -46,7 +46,7 @@
   color: var(--on-ink);
 }
 
-.button.primary:hover:not(:disabled) {
+.button.primary:hover:not(:disabled, .busy) {
   border-color: var(--ink-hover);
   background: var(--ink-hover);
 }
@@ -57,13 +57,6 @@
   background: var(--surface-3);
   color: var(--muted);
   opacity: 1;
-}
-
-.button.primary.busy:disabled {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--on-ink);
-  opacity: 0.85;
 }
 
 .button.ghost {
@@ -83,7 +76,7 @@
   color: var(--surface);
 }
 
-.button.danger:hover:not(:disabled) {
+.button.danger:hover:not(:disabled, .busy) {
   border-color: var(--danger-hover);
   background: var(--danger-hover);
 }
@@ -219,6 +212,11 @@ textarea::placeholder {
 
 .callout .icon {
   margin-top: 0.1rem;
+}
+
+.callout-body {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .callout.info {

@@ -55,6 +55,19 @@ describe('AuthForm', () => {
     expect(password).toHaveAttribute('type', 'password')
   })
 
+  it('stays focusable while it logs in', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(() => new Promise<Response>(() => {})))
+    render(<AuthForm notice={null} onAuthenticated={vi.fn<(user: User) => void>()} />)
+
+    await userEvent.type(screen.getByLabelText('Email'), 'a@example.com')
+    await userEvent.type(screen.getByLabelText('Password'), 'a long password')
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }))
+
+    const busy = screen.getByRole('button', { name: 'Logging in…' })
+    expect(busy).toHaveAttribute('aria-disabled', 'true')
+    expect(busy).toHaveFocus()
+  })
+
   it('moves between the tabs with the arrow keys', async () => {
     render(<AuthForm notice={null} onAuthenticated={vi.fn<(user: User) => void>()} />)
 
@@ -66,5 +79,10 @@ describe('AuthForm', () => {
     expect(signUp).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('heading', { name: 'Create your account' })).toBeInTheDocument()
     expect(screen.getByLabelText('Password')).toHaveAccessibleDescription('At least 8 characters.')
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Sign up')
+
+    await userEvent.keyboard('{Home}')
+    expect(screen.getByRole('tab', { name: 'Log in' })).toHaveFocus()
+    expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument()
   })
 })
