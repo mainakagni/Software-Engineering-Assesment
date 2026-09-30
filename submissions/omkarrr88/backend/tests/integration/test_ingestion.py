@@ -3,6 +3,7 @@
 import json
 import logging
 import math
+import re
 from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
@@ -185,14 +186,34 @@ def test_document_deleted_while_processing_is_dropped(
     assert _count(db, Chunk) == 0
 
 
-def test_too_many_chunks_fails(client: TestClient, db: sessionmaker[Session]) -> None:
+class CountingEmbedder(FakeEmbedder):
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls = 0
+
+    def embed_documents(self, texts: Sequence[str], title: str | None = None) -> list[list[float]]:
+        self.calls += 1
+        return super().embed_documents(texts, title)
+
+
+def test_a_document_over_the_passage_limit_fails_before_embedding(
+    client: TestClient, db: sessionmaker[Session]
+) -> None:
     settings = make_test_settings(
         max_chunks_per_document=2, chunk_size_chars=100, chunk_overlap_chars=0
     )
     text = " ".join(f"Sentence number {i} is here." for i in range(40))
     upload(client, signup(client), "long.txt", text.encode())
-    run_job(db, settings)
-    assert "too long" in (_document(db).error or "")
+    embedder = CountingEmbedder()
+
+    run_job(db, settings, embedder)
+
+    document = _document(db)
+    assert document.status == "failed"
+    assert re.search(
+        r"too long: it splits into \d+ passages, and the limit is 2\.", document.error or ""
+    )
+    assert embedder.calls == 0  # refused before anything was sent, so no quota was spent
 
 
 def test_a_job_is_claimed_only_once(client: TestClient, db: sessionmaker[Session]) -> None:

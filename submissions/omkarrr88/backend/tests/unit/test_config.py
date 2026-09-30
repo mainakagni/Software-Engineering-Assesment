@@ -72,3 +72,8 @@ def test_the_similarity_floor_defaults_to_the_embedding_models_own() -> None:
     gemini = make_test_settings(embedding_provider="gemini", gemini_api_key="k")
     assert gemini.min_similarity == 0.60
     assert make_test_settings(retrieval_min_similarity=0.5).min_similarity == 0.5
+
+
+def test_one_document_uses_at_most_a_third_of_the_free_embedding_quota() -> None:
+    # Each passage is one embedding request, and Gemini's free tier allows 1,000 a day in all.
+    assert make_test_settings().max_chunks_per_document * 3 <= 1000
