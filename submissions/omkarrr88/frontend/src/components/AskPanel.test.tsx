@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -52,5 +52,34 @@ describe('AskPanel', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('not responding')
     expect(onAnswer).not.toHaveBeenCalled()
+  })
+
+  it('keeps the question read-only while it is being answered', async () => {
+    const pending: { resolve?: (response: Response) => void } = {}
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(
+        () =>
+          new Promise<Response>((resolve) => {
+            pending.resolve = resolve
+          }),
+      ),
+    )
+    render(
+      <AskPanel
+        readyDocuments={[TRAVEL]}
+        processing={false}
+        onAnswer={vi.fn<(answer: Answer) => void>()}
+      />,
+    )
+    const box = screen.getByLabelText('Your question')
+    expect(box).toHaveAccessibleDescription('Enter to ask, Shift+Enter for a new line')
+
+    await userEvent.type(box, 'Who approves travel?{Enter}')
+    expect(box).toHaveAttribute('readonly')
+    expect(screen.getByRole('button', { name: 'Searching your documents...' })).toBeDisabled()
+
+    pending.resolve?.(ok(makeAnswer()))
+    await waitFor(() => expect(box).not.toHaveAttribute('readonly'))
   })
 })
