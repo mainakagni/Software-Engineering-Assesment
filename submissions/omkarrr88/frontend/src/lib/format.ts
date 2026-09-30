@@ -5,6 +5,9 @@ export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 export const MAX_DOCUMENTS = 20
 export const ACCEPTED_EXTENSIONS = ['.pdf', '.txt', '.md', '.markdown']
 
+// The interface is in English, so numbers and times are formatted the English way too.
+const LOCALE = 'en'
+
 /** Why the file cannot be uploaded, or null if it looks fine. The server checks again. */
 export function uploadProblem(file: File): string | null {
   const name = file.name.toLowerCase()
@@ -30,7 +33,7 @@ export function documentKind(filename: string): DocumentKind {
 }
 
 export function plural(count: number, noun: string): string {
-  return `${count.toLocaleString()} ${noun}${count === 1 ? '' : 's'}`
+  return `${count.toLocaleString(LOCALE)} ${noun}${count === 1 ? '' : 's'}`
 }
 
 export function formatBytes(bytes: number): string {
@@ -56,7 +59,7 @@ export function formatCost(usd: number): string {
   return `$${usd.toFixed(4)}`
 }
 
-const relative = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
+const relative = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' })
 
 export function formatAge(isoTime: string, now: Date = new Date()): string {
   const seconds = Math.round((new Date(isoTime).getTime() - now.getTime()) / 1000)

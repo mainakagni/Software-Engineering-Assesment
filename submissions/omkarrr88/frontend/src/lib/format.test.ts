@@ -64,7 +64,9 @@ describe('formatting', () => {
   it('formats ages relative to now', () => {
     const now = new Date('2026-09-30T12:00:00Z')
     expect(formatAge('2026-09-30T11:59:30Z', now)).toBe('just now')
-    expect(formatAge('2026-09-30T11:55:00Z', now)).toMatch(/5 minutes ago/)
-    expect(formatAge('2026-09-28T12:00:00Z', now)).toMatch(/2 days ago/)
+    expect(formatAge('2026-09-30T11:55:00Z', now)).toBe('5 minutes ago')
+    expect(formatAge('2026-09-30T09:00:00Z', now)).toBe('3 hours ago')
+    expect(formatAge('2026-09-29T12:00:00Z', now)).toBe('yesterday')
+    expect(formatAge('2026-09-28T12:00:00Z', now)).toBe('2 days ago')
   })
 })
