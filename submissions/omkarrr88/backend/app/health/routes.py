@@ -62,3 +62,8 @@ def health(request: Request, response: Response, settings: SettingsDep) -> Envel
         },
     )
     return ok(report)
+
+
+# HEAD too: uptime monitors often use it, and a 405 would read as "down". Kept out of the API docs.
+for path, endpoint in (("/health/live", liveness), ("/health", health)):
+    router.add_api_route(path, endpoint, methods=["HEAD"], include_in_schema=False)
