@@ -157,7 +157,8 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface);
-  font-size: 0.9375rem;
+  /* 16px, so phones do not zoom in when the field gets focus. */
+  font-size: 1rem;
   transition:
     border-color 150ms var(--ease),
     box-shadow 150ms var(--ease);

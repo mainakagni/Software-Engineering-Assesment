@@ -176,6 +176,7 @@
   margin-top: 0.35rem;
   color: var(--danger);
   font-size: 0.75rem;
+  overflow-wrap: anywhere;
 }
 
 .confirm {

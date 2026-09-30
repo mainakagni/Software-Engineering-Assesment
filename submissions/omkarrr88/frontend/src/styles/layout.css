@@ -116,6 +116,7 @@
 
 .workspace {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 1024px) {
@@ -166,6 +167,7 @@
 
 .stage {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 1.5rem;
   width: 100%;

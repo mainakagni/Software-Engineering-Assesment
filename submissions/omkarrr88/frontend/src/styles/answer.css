@@ -2,6 +2,7 @@
 
 .answer {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
   padding: 1.4rem 1.25rem;
   border: 1px solid var(--border);
@@ -17,11 +18,20 @@
   }
 }
 
+/* Questions, answers and passages can hold long URLs or file names, which must not widen the page. */
+.answer-question,
+.answer-text,
+.not-found-title,
+.citation blockquote,
+.passage {
+  overflow-wrap: anywhere;
+}
+
 .answer-question {
   font-size: 1.5rem;
   line-height: 1.25;
   letter-spacing: -0.015em;
-  scroll-margin-top: calc(var(--header-height) + 1.5rem);
+  scroll-margin-top: 0.75rem;
 }
 
 .answer-text {
@@ -48,6 +58,7 @@
 .not-found-note > div {
   display: grid;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .not-found-title {
@@ -56,6 +67,7 @@
 
 .sources {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
 }
 
@@ -69,6 +81,7 @@
 
 .citations {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.6rem;
   padding: 0;
   list-style: none;
@@ -76,6 +89,7 @@
 
 .citation {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.6rem;
   padding: 0.9rem 1rem;
   border: 1px solid var(--border);
@@ -294,6 +308,18 @@
   color: var(--muted);
   font-size: 0.75rem;
   white-space: nowrap;
+}
+
+/* On phones the age goes under the question, which then keeps the full width. */
+@media (max-width: 479px) {
+  .history-item {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 0.1rem;
+  }
+
+  .history-age {
+    grid-column: 2;
+  }
 }
 
 /* --- Session check ------------------------------------------------------------------------- */

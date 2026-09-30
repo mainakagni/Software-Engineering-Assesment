@@ -6,6 +6,11 @@
   box-sizing: border-box;
 }
 
+/* Keeps focused and linked elements clear of the sticky header. */
+html {
+  scroll-padding-top: calc(var(--header-height) + 0.75rem);
+}
+
 body {
   margin: 0;
   min-width: 320px;

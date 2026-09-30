@@ -2,7 +2,9 @@
 
 @media (pointer: coarse) {
   .button,
-  .input {
+  .button.small,
+  .input,
+  .segmented button {
     min-height: 44px;
   }
 
