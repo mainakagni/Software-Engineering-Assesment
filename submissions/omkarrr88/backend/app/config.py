@@ -87,8 +87,10 @@ class Settings(DatabaseSettings):
     llm_output_price_per_mtok: float = 2.50
     embedding_price_per_mtok: float = 0.15
 
-    # Behind Render's proxy the real client IP is in X-Forwarded-For.
-    trust_proxy_headers: bool = False
+    # Whether the client IP comes from X-Forwarded-For (true behind a reverse proxy such as
+    # Render's) or from the socket (false when clients connect directly). Production must say which:
+    # guessing wrong either lets clients spoof their IP or puts every client behind one address.
+    trust_proxy_headers: bool | None = None
     trusted_proxy_count: int = 1
     cors_origins: str = ""
 
@@ -112,6 +114,11 @@ class Settings(DatabaseSettings):
             secret = self.jwt_secret.get_secret_value()
             if len(secret) < 32 or secret == DEV_JWT_SECRET:
                 raise ValueError("JWT_SECRET must be a random string of at least 32 characters")
+            if self.trust_proxy_headers is None:
+                raise ValueError(
+                    "TRUST_PROXY_HEADERS must be set in production: true behind a reverse proxy "
+                    "(as on Render), false when clients connect to the app directly"
+                )
         uses_gemini = "gemini" in (self.llm_provider, self.embedding_provider)
         if uses_gemini and not self.gemini_api_key:
             raise ValueError(

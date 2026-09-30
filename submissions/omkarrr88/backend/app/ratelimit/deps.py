@@ -88,16 +88,16 @@ def _enforce(request: Request, limits: list[tuple[str, int, int, str]]) -> None:
 def _reject(decision: RateLimitDecision, scope: str) -> None:
     wait = decision.retry_after_seconds
     messages = {
-        "question_minute": f"Too many questions. Try again in {wait} seconds.",
+        "question_minute": f"Too many questions. Try again in {_duration(wait)}.",
         "question_day": f"You have reached today's limit of {decision.limit} questions. "
-        f"Try again in {_hours(wait)}.",
+        f"Try again in {_duration(wait)}.",
         "question_global": "The demo has reached its question limit for today. "
         "Please try again tomorrow.",
         "upload_day": f"You have reached today's limit of {decision.limit} uploads. "
-        f"Try again in {_hours(wait)}.",
+        f"Try again in {_duration(wait)}.",
         "upload_global": "The demo has reached its upload limit for today. "
         "Please try again tomorrow.",
-        "auth": f"Too many attempts. Try again in {wait} seconds.",
+        "auth": f"Too many attempts. Try again in {_duration(wait)}.",
     }
     logger.warning(
         "ratelimit.rejected", extra={"scope": scope, "limit": decision.limit, "retry_after": wait}
@@ -105,6 +105,10 @@ def _reject(decision: RateLimitDecision, scope: str) -> None:
     raise RateLimitedError(messages[scope], retry_after_seconds=wait)
 
 
-def _hours(seconds: int) -> str:
-    hours = max(1, round(seconds / 3600))
-    return "1 hour" if hours == 1 else f"{hours} hours"
+def _duration(seconds: int) -> str:
+    """How long to wait, in the unit a person would use: '40 seconds', '12 minutes', '5 hours'."""
+    for unit, size in (("hour", 3600), ("minute", 60)):
+        if seconds >= 2 * size:
+            count = round(seconds / size)
+            return f"{count} {unit}s"
+    return f"{seconds} second" + ("" if seconds == 1 else "s")
