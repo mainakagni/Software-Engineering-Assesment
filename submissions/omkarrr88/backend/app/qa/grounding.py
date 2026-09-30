@@ -2,6 +2,7 @@
 least one of its quotes can be found in that passage."""
 
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 
@@ -23,6 +24,9 @@ _TRANSLATE = str.maketrans(
     }
 )  # fmt: skip
 _WHITESPACE = re.compile(r"\s+")
+# "(S1)", "[S2]" or "(S1, S3)" in the answer text: the citations already name the sources.
+_SOURCE_MARKER = re.compile(r"\s*[(\[]\s*(S\d+(?:\s*[,;]\s*S\d+)*)\s*[)\]]")
+_MARKER_SEPARATOR = re.compile(r"\s*[,;]\s*")
 
 
 class ModelCitation(BaseModel):
@@ -102,7 +106,21 @@ def ground(reply: ModelReply, sources: dict[str, RetrievedChunk]) -> GroundedAns
             )
         )
     citations = citations[:MAX_CITATIONS]
-    answer = reply.answer.strip()
+    answer = strip_source_markers(reply.answer, sources.keys())
     if reply.found and answer and any(c.quote_verified for c in citations):
         return GroundedAnswer(found=True, answer=answer, citations=citations)
     return GroundedAnswer(found=False, answer=NOT_FOUND_ANSWER, citations=[])
+
+
+def strip_source_markers(answer: str, source_ids: Collection[str]) -> str:
+    """The answer without source markers such as "(S1)", which mean nothing to the reader.
+
+    Only markers made entirely of IDs that were sent are removed, so text that merely looks like
+    a marker stays.
+    """
+
+    def replace(match: re.Match[str]) -> str:
+        ids = _MARKER_SEPARATOR.split(match.group(1))
+        return "" if all(source_id in source_ids for source_id in ids) else match.group(0)
+
+    return _SOURCE_MARKER.sub(replace, answer).strip()
