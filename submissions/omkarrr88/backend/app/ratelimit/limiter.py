@@ -51,6 +51,15 @@ def hit(
     )
 
 
+def describe_wait(seconds: int) -> str:
+    """How long to wait, in the unit a person would use: '40 seconds', '12 minutes', '5 hours'."""
+    for unit, size in (("hour", 3600), ("minute", 60)):
+        if seconds >= 2 * size:
+            count = round(seconds / size)
+            return f"{count} {unit}s"
+    return f"{seconds} second" + ("" if seconds == 1 else "s")
+
+
 def delete_old_windows(session: Session, *, older_than: datetime) -> int:
     """Removes counters of windows that started before `older_than`; returns how many."""
     deleted = session.scalars(

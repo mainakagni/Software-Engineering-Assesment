@@ -10,7 +10,7 @@ from app.auth.deps import CurrentUser
 from app.config import Settings
 from app.dependencies import SettingsDep
 from app.errors import RateLimitedError
-from app.ratelimit.limiter import RateLimitDecision, hit
+from app.ratelimit.limiter import RateLimitDecision, describe_wait, hit
 
 logger = logging.getLogger(__name__)
 
@@ -88,27 +88,18 @@ def _enforce(request: Request, limits: list[tuple[str, int, int, str]]) -> None:
 def _reject(decision: RateLimitDecision, scope: str) -> None:
     wait = decision.retry_after_seconds
     messages = {
-        "question_minute": f"Too many questions. Try again in {_duration(wait)}.",
+        "question_minute": f"Too many questions. Try again in {describe_wait(wait)}.",
         "question_day": f"You have reached today's limit of {decision.limit} questions. "
-        f"Try again in {_duration(wait)}.",
+        f"Try again in {describe_wait(wait)}.",
         "question_global": "The demo has reached its question limit for today. "
         "Please try again tomorrow.",
         "upload_day": f"You have reached today's limit of {decision.limit} uploads. "
-        f"Try again in {_duration(wait)}.",
+        f"Try again in {describe_wait(wait)}.",
         "upload_global": "The demo has reached its upload limit for today. "
         "Please try again tomorrow.",
-        "auth": f"Too many attempts. Try again in {_duration(wait)}.",
+        "auth": f"Too many attempts. Try again in {describe_wait(wait)}.",
     }
     logger.warning(
         "ratelimit.rejected", extra={"scope": scope, "limit": decision.limit, "retry_after": wait}
     )
     raise RateLimitedError(messages[scope], retry_after_seconds=wait)
-
-
-def _duration(seconds: int) -> str:
-    """How long to wait, in the unit a person would use: '40 seconds', '12 minutes', '5 hours'."""
-    for unit, size in (("hour", 3600), ("minute", 60)):
-        if seconds >= 2 * size:
-            count = round(seconds / size)
-            return f"{count} {unit}s"
-    return f"{seconds} second" + ("" if seconds == 1 else "s")

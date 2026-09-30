@@ -82,6 +82,9 @@ class Settings(DatabaseSettings):
     # Each passage costs one embedding request, and Gemini's free tier allows 1,000 a day for the
     # whole demo. At 300 (about 150 PDF pages), one document cannot use more than a third of that.
     max_chunks_per_document: int = 300
+    # All documents together may use this many embedding requests in any 24 hours, so uploads
+    # cannot use up what questions need (see the test that adds the two up).
+    global_passages_per_day: int = 500
 
     questions_per_minute: int = 10
     questions_per_day: int = 100
@@ -119,6 +122,11 @@ class Settings(DatabaseSettings):
     def _check_consistency(self) -> Self:
         if self.embedding_dim != VECTOR_DIM:
             raise ValueError(f"EMBEDDING_DIM must be {VECTOR_DIM} to match the database schema")
+        if self.max_chunks_per_document > self.global_passages_per_day:
+            raise ValueError(
+                "MAX_CHUNKS_PER_DOCUMENT cannot be more than GLOBAL_PASSAGES_PER_DAY, or the "
+                "longest document allowed could never be processed"
+            )
         if self.app_env == "production":
             secret = self.jwt_secret.get_secret_value()
             if len(secret) < 32 or secret == DEV_JWT_SECRET:
