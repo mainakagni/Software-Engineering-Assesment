@@ -1,0 +1,68 @@
+# docker compose up --build   ->  API on http://localhost:8000 (docs at /docs)
+# Requires a .env file: cp .env.example .env
+
+name: documind
+
+x-app: &app
+  env_file:
+    - path: .env
+      required: true
+  environment:
+    # Containers reach Postgres by its service name; this overrides DATABASE_URL from .env.
+    DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-documind}:${POSTGRES_PASSWORD:-documind}@db:5432/${POSTGRES_DB:-documind}
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-documind}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-documind}
+      POSTGRES_DB: ${POSTGRES_DB:-documind}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *app
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: documind-api:local
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *app
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: documind-api:local
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  worker:
+    <<: *app
+    build:
+      context: .
+      dockerfile: backend/worker.Dockerfile
+    image: documind-worker:local
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  pgdata:
