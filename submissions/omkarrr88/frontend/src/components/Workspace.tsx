@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function Workspace({ user, onLogOut }: Props) {
-  const { documents, error, processing, added, removed } = useDocuments()
+  const { documents, error, added, removed } = useDocuments()
   const [history, setHistory] = useState<Answer[]>([])
   const [historyError, setHistoryError] = useState<string | null>(null)
   const [current, setCurrent] = useState<Answer | null>(null)
@@ -56,7 +56,6 @@ export function Workspace({ user, onLogOut }: Props) {
     requestAnimationFrame(() => answerHeading.current?.focus())
   }
 
-  const ready = (documents ?? []).filter((document) => document.status === 'ready')
   return (
     <div className="app">
       <Header email={user.email} onLogOut={onLogOut} />
@@ -64,12 +63,7 @@ export function Workspace({ user, onLogOut }: Props) {
         <h1 className="visually-hidden">DocuMind workspace</h1>
         <Library documents={documents} error={error} onUploaded={added} onDeleted={removed} />
         <div className="stage">
-          <AskPanel
-            readyDocuments={ready}
-            processing={processing}
-            onAnswer={answered}
-            onAsking={setPending}
-          />
+          <AskPanel documents={documents} onAnswer={answered} onAsking={setPending} />
           {pending !== null ? (
             <PendingAnswer question={pending} />
           ) : (

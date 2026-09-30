@@ -1,20 +1,24 @@
-import { CircleAlert, LoaderCircle } from 'lucide-react'
 import { useId, useState, type FormEvent, type KeyboardEvent } from 'react'
 
 import { api, errorMessage } from '../api/client'
 import type { Answer, DocumentItem } from '../api/types'
+import { isProcessing } from '../lib/format'
+import { BusyButton } from './BusyButton'
+import { Callout } from './Callout'
+import { DocumentPicker, ScopeSwitch } from './ScopeSwitch'
 
+const MIN_QUESTION_LENGTH = 3
 const MAX_QUESTION_LENGTH = 1000
 
 interface Props {
-  readyDocuments: DocumentItem[]
-  processing: boolean
+  /** All of the user's documents, or null while they are loading. */
+  documents: DocumentItem[] | null
   onAnswer: (answer: Answer) => void
   /** Called with the question when asking starts, and with null when it ends either way. */
   onAsking?: (question: string | null) => void
 }
 
-export function AskPanel({ readyDocuments, processing, onAnswer, onAsking }: Props) {
+export function AskPanel({ documents, onAnswer, onAsking }: Props) {
   const [question, setQuestion] = useState('')
   const [onlySelected, setOnlySelected] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
@@ -22,26 +26,24 @@ export function AskPanel({ readyDocuments, processing, onAnswer, onAsking }: Pro
   const [error, setError] = useState<string | null>(null)
   const hintId = useId()
 
+  const ready = (documents ?? []).filter((document) => document.status === 'ready')
   // Picking only makes sense with two or more ready documents. A picked document may have been
   // deleted since; only ready ones can be searched.
-  const choosing = readyDocuments.length > 1
+  const choosing = ready.length > 1
   const scoped = choosing && onlySelected
-  const selectedReady = selected.filter((id) => readyDocuments.some((d) => d.id === id))
+  const picked = selected.filter((id) => ready.some((document) => document.id === id))
   const trimmed = question.trim()
   const canAsk =
-    !asking &&
-    trimmed.length >= 3 &&
-    readyDocuments.length > 0 &&
-    (!scoped || selectedReady.length > 0)
+    trimmed.length >= MIN_QUESTION_LENGTH && ready.length > 0 && (!scoped || picked.length > 0)
 
   async function submit(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
-    if (!canAsk) return
+    if (asking || !canAsk) return
     setAsking(true)
     setError(null)
     onAsking?.(trimmed)
     try {
-      onAnswer(await api.ask(trimmed, scoped ? selectedReady : null))
+      onAnswer(await api.ask(trimmed, scoped ? picked : null))
     } catch (caught) {
       setError(errorMessage(caught))
     } finally {
@@ -64,21 +66,12 @@ export function AskPanel({ readyDocuments, processing, onAnswer, onAsking }: Pro
     )
   }
 
-  function note(): string | null {
-    if (readyDocuments.length === 0) {
-      return processing
-        ? 'Your documents are still being processed. You can ask once one is ready.'
-        : 'Upload a document to start asking questions.'
-    }
-    return scoped && selectedReady.length === 0 ? 'Pick at least one document to search.' : null
-  }
-
-  const composerNote = note()
+  const note = composerNote(documents, ready.length, scoped && picked.length === 0)
   return (
     <section className="ask" aria-labelledby="ask-title">
       <div className="intro">
         <h2 id="ask-title" className="serif">
-          Ask your documents
+          Ask a question
         </h2>
         <p>Answers come only from your files, and each one shows the passage it was taken from.</p>
       </div>
@@ -87,7 +80,7 @@ export function AskPanel({ readyDocuments, processing, onAnswer, onAsking }: Pro
         <textarea
           aria-label="Your question"
           aria-describedby={hintId}
-          placeholder="Ask a question about your documents…"
+          placeholder="Type your question…"
           rows={3}
           maxLength={MAX_QUESTION_LENGTH}
           value={question}
@@ -96,76 +89,46 @@ export function AskPanel({ readyDocuments, processing, onAnswer, onAsking }: Pro
           // Read-only rather than disabled while asking, so it keeps focus.
           readOnly={asking}
         />
-
-        {scoped && (
-          <ul className="picker" aria-label="Documents to search">
-            {readyDocuments.map((document) => (
-              <li key={document.id}>
-                <label className="chip">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(document.id)}
-                    onChange={() => toggle(document.id)}
-                  />
-                  <span>{document.filename}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        )}
-
+        {scoped && <DocumentPicker documents={ready} selected={selected} onToggle={toggle} />}
         <div className="composer-bar">
-          {choosing && (
-            <fieldset className="scope">
-              <legend className="visually-hidden">Search in</legend>
-              <span className="scope-options">
-                <label className="scope-option">
-                  <input
-                    type="radio"
-                    name="scope"
-                    checked={!onlySelected}
-                    onChange={() => setOnlySelected(false)}
-                  />
-                  <span>
-                    All<span className="scope-extra"> documents</span>
-                  </span>
-                </label>
-                <label className="scope-option">
-                  <input
-                    type="radio"
-                    name="scope"
-                    checked={onlySelected}
-                    onChange={() => setOnlySelected(true)}
-                  />
-                  <span>
-                    Selected<span className="scope-extra"> documents</span>
-                  </span>
-                </label>
-              </span>
-            </fieldset>
-          )}
+          {choosing && <ScopeSwitch onlySelected={onlySelected} onChange={setOnlySelected} />}
           <span className="composer-hint" id={hintId}>
             <kbd>Enter</kbd> to ask, <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line
           </span>
-          <button
+          <BusyButton
             type="submit"
-            className={asking ? 'button primary busy' : 'button primary'}
+            className="button primary"
+            busy={asking}
+            busyText="Searching…"
             disabled={!canAsk}
           >
-            {asking && <LoaderCircle size={16} className="spin" />}
-            {asking ? 'Searching…' : 'Ask'}
-          </button>
+            Ask
+          </BusyButton>
         </div>
-
-        {composerNote && <p className="composer-note">{composerNote}</p>}
+        {note && <p className="composer-note">{note}</p>}
       </form>
 
       {error && (
-        <p className="callout error" role="alert">
-          <CircleAlert size={16} className="icon" />
-          <span>{error}</span>
-        </p>
+        <Callout tone="error" announce>
+          {error}
+        </Callout>
       )}
     </section>
   )
+}
+
+/** Why the user cannot ask yet, if there is a reason. Nothing is said while documents load. */
+function composerNote(
+  documents: DocumentItem[] | null,
+  readyCount: number,
+  nothingPicked: boolean,
+): string | null {
+  if (documents === null) return null
+  if (documents.length === 0) return 'Upload a document to start asking questions.'
+  if (readyCount === 0) {
+    return documents.some(isProcessing)
+      ? 'Your documents are still being processed. You can ask once one is ready.'
+      : 'None of your documents could be read. Upload another one to start asking questions.'
+  }
+  return nothingPicked ? 'Pick at least one document to search.' : null
 }
