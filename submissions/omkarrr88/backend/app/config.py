@@ -78,6 +78,8 @@ class Settings(DatabaseSettings):
     questions_per_day: int = 100
     global_questions_per_day: int = 200
     auth_attempts_per_minute: int = 10
+    uploads_per_day: int = 20
+    global_uploads_per_day: int = 200
     answer_cache_ttl_hours: int = 24
 
     # USD per million tokens, used only for the "estimated cost" in answers.

@@ -1,19 +1,23 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.auth.deps import CurrentUser
 from app.dependencies import DbSession, EmbedderDep, LLMDep, SettingsDep
 from app.envelope import Envelope, PageMeta, error_responses, ok
 from app.qa import service
 from app.qa.schemas import AnswerOut, AskRequest
+from app.ratelimit.deps import enforce_question_limits
 
 router = APIRouter(prefix="/api/questions", tags=["questions"])
 
 
 @router.post(
-    "", response_model=Envelope[AnswerOut], responses=error_responses(401, 404, 409, 422, 503)
+    "",
+    response_model=Envelope[AnswerOut],
+    responses=error_responses(401, 404, 409, 422, 429, 503),
+    dependencies=[Depends(enforce_question_limits)],
 )
 def ask_question(
     body: AskRequest,
@@ -26,6 +30,7 @@ def ask_question(
     """Answers from your ready documents (or only the selected ones), with citations.
 
     When the documents do not contain the answer, `found` is false and the answer says so.
+    Questions are limited per user per minute and per day.
     """
     record = service.ask(
         session, user.id, body.question, body.document_ids,
