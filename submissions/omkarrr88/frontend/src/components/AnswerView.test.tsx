@@ -49,6 +49,7 @@ describe('AnswerView', () => {
     render(<AnswerView answer={makeAnswer({ found: false, citations: [], usage })} />)
 
     expect(screen.getByText('no model call')).toBeInTheDocument()
+    expect(screen.getByText('0 tokens')).toBeInTheDocument()
   })
 })
 
@@ -57,6 +58,8 @@ describe('PendingAnswer', () => {
     render(<PendingAnswer question="Who approves travel?" />)
 
     expect(screen.getByRole('heading', { name: 'Who approves travel?' })).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Searching your documents')
+    expect(screen.getByText('Searching your documents…')).toBeInTheDocument()
+    // The workspace announces it; a second live region here would repeat it.
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })

@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
-import { api, errorMessage } from '../api/client'
 import type { Answer, User } from '../api/types'
 import { useDocuments } from '../lib/useDocuments'
+import { useHistory } from '../lib/useHistory'
 import { AnswerView, PendingAnswer } from './AnswerView'
 import { AskPanel } from './AskPanel'
 import { Header } from './Header'
 import { HistoryList } from './HistoryList'
 import { Library } from './Library'
 
-const HISTORY_LENGTH = 20
+const SEARCHING = 'Searching your documents…'
 
 interface Props {
   user: User
@@ -18,39 +18,30 @@ interface Props {
 
 export function Workspace({ user, onLogOut }: Props) {
   const { documents, error, added, removed } = useDocuments()
-  const [history, setHistory] = useState<Answer[]>([])
-  const [historyError, setHistoryError] = useState<string | null>(null)
+  const history = useHistory()
   const [current, setCurrent] = useState<Answer | null>(null)
   const [pending, setPending] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const answerHeading = useRef<HTMLHeadingElement>(null)
 
-  useEffect(() => {
-    let active = true
-    api
-      .listQuestions(HISTORY_LENGTH)
-      .then((answers) => {
-        if (active) setHistory(answers)
-      })
-      .catch((caught: unknown) => {
-        if (active) setHistoryError(errorMessage(caught))
-      })
-    return () => {
-      active = false
-    }
-  }, [])
+  // A live region speaks only when its text changes, so every question starts from "searching",
+  // and a question that ends without an answer clears it.
+  function asking(question: string | null) {
+    setPending(question)
+    if (question !== null) setAnnouncement(SEARCHING)
+    else setAnnouncement((previous) => (previous === SEARCHING ? '' : previous))
+  }
 
   function answered(answer: Answer) {
     setCurrent(answer)
     setAnnouncement(
       answer.found ? 'The answer is ready.' : 'No answer was found in your documents.',
     )
-    setHistory((previous) =>
-      [answer, ...previous.filter((other) => other.id !== answer.id)].slice(0, HISTORY_LENGTH),
-    )
+    history.remember(answer)
   }
 
   function reopen(answer: Answer) {
+    if (pending !== null) return // the new answer is on its way and will take this place
     setCurrent(answer)
     // Focus follows the reopened answer, which also scrolls it into view.
     requestAnimationFrame(() => answerHeading.current?.focus())
@@ -63,16 +54,16 @@ export function Workspace({ user, onLogOut }: Props) {
         <h1 className="visually-hidden">DocuMind workspace</h1>
         <Library documents={documents} error={error} onUploaded={added} onDeleted={removed} />
         <div className="stage">
-          <AskPanel documents={documents} onAnswer={answered} onAsking={setPending} />
+          <AskPanel documents={documents} onAnswer={answered} onAsking={asking} />
           {pending !== null ? (
             <PendingAnswer question={pending} />
           ) : (
             current && <AnswerView answer={current} headingRef={answerHeading} />
           )}
           <HistoryList
-            answers={history}
+            answers={history.answers}
             currentId={current?.id ?? null}
-            error={historyError}
+            error={history.error}
             onSelect={reopen}
           />
           <p className="visually-hidden" role="status">

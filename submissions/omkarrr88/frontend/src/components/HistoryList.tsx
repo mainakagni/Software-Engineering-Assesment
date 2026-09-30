@@ -1,7 +1,8 @@
-import { CircleAlert, SearchX, TextQuote } from 'lucide-react'
+import { SearchX, TextQuote } from 'lucide-react'
 
 import type { Answer } from '../api/types'
 import { formatAge } from '../lib/format'
+import { Callout } from './Callout'
 
 interface Props {
   answers: Answer[]
@@ -17,12 +18,7 @@ export function HistoryList({ answers, currentId, error, onSelect }: Props) {
       <h3 id="history-title" className="section-title">
         Recent questions
       </h3>
-      {error && (
-        <p className="callout error">
-          <CircleAlert size={16} className="icon" />
-          <span>{error}</span>
-        </p>
-      )}
+      {error && <Callout tone="error">{error}</Callout>}
       {answers.length > 0 && (
         <ul className="history-list">
           {answers.map((answer) => (

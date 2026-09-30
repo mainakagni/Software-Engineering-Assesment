@@ -2,7 +2,7 @@ import { ChevronRight, CircleAlert, LoaderCircle, SearchX } from 'lucide-react'
 import type { Ref } from 'react'
 
 import type { Answer, Citation } from '../api/types'
-import { formatCost, formatPages, formatSeconds } from '../lib/format'
+import { formatCost, formatPages, formatSeconds, plural } from '../lib/format'
 import { highlight } from '../lib/highlight'
 
 interface Props {
@@ -60,7 +60,7 @@ export function AnswerView({ answer, headingRef }: Props) {
           {formatSeconds(usage.latency_ms)}
         </span>
         <span className="metric" title="Prompt, output and thinking tokens">
-          {usage.total_tokens.toLocaleString()} tokens
+          {plural(usage.total_tokens, 'token')}
         </span>
         <span className="metric" title="Estimated cost at paid-tier prices">
           {formatCost(usage.estimated_cost_usd)}
@@ -115,14 +115,17 @@ function CitationItem({ citation, number }: { citation: Citation; number: number
   )
 }
 
-/** Stands in for the answer while the question is being answered. */
+/**
+ * Stands in for the answer while the question is being answered. The workspace tells screen
+ * readers, so this card has no live region of its own.
+ */
 export function PendingAnswer({ question }: { question: string }) {
   return (
-    <article className="answer pending" aria-busy="true" aria-labelledby="pending-question">
+    <article className="answer pending" aria-labelledby="pending-question">
       <h3 id="pending-question" className="answer-question serif">
         {question}
       </h3>
-      <p className="pending-status" role="status">
+      <p className="pending-status">
         <LoaderCircle size={16} className="spin" />
         Searching your documents…
       </p>

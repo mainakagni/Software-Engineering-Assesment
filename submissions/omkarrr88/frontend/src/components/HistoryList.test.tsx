@@ -36,6 +36,21 @@ describe('HistoryList', () => {
     expect(onSelect).toHaveBeenCalledWith(missing)
   })
 
+  it('says when the history could not be loaded', () => {
+    render(
+      <HistoryList
+        answers={[]}
+        currentId={null}
+        error="The server is not responding."
+        onSelect={vi.fn<(answer: Answer) => void>()}
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Recent questions' })).toBeInTheDocument()
+    expect(screen.getByText('The server is not responding.')).toBeInTheDocument()
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
   it('renders nothing before the first question', () => {
     const onSelect = vi.fn<(answer: Answer) => void>()
     const { container } = render(
