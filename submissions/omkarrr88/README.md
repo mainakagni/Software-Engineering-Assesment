@@ -49,7 +49,8 @@ Questions to try:
 - Each answer shows its time, tokens and estimated cost. Your past questions are kept and can be opened
   again.
 - Nobody can see or search another user's documents.
-- Rate limits keep the public link from using up the model quota.
+- Rate limits and a daily budget for processing documents keep the public link from using up the model
+  quota.
 - `/health` reports the database, the vector store, the job queue and the worker.
 
 | Uploads are processed in the background | Each quote opens to its passage, highlighted |
@@ -218,11 +219,13 @@ What breaks first at scale:
 - **The worker and the quota.** One worker process handles one document at a time, and big uploads wait
   in line. More worker processes can share the queue without changes, since jobs are claimed with
   `SKIP LOCKED`. The Gemini free tier also caps requests per minute and per day: 1,000 embedding
-  requests a day for the whole demo, one for each passage uploaded and one for each new question. A
-  document may have at most 300 passages, so one upload cannot use up the day, and the limit of 200
-  questions a day protects the rest. Both limits would block real use; a paid plan removes them.
-- **The free plan.** The service sleeps when idle, has 512 MB of memory, and the free database expires.
-  A paid plan would also let the worker run as its own service.
+  requests a day for the whole demo, one for each passage uploaded and one for each new question.
+  Documents may use at most 500 of them in any 24 hours (and 300 each), and questions at most 200 a
+  day, so uploads cannot use up what questions need. A document that does not fit fails before
+  anything is embedded, and the message says how many passages are left and when there will be
+  room. These limits would block real use; a paid plan removes them.
+- **The free plan.** The service sleeps when idle, has 512 MB of memory, and the free database expires
+  30 days after it was created. A paid plan would also let the worker run as its own service.
 - **Scanned PDFs.** There is no OCR, so a PDF without a text layer fails with a clear reason.
 - **Sign-in tokens.** Tokens last 60 minutes and cannot be revoked early. Logging out only drops the token
   in the browser.

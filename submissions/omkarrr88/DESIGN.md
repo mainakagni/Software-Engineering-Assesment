@@ -501,5 +501,14 @@ The sections above are the plan as written before the code. This is what changed
     and every question would fail until the next day. The limit is now 300 passages (about 150 PDF pages).
     It is checked after chunking and before anything is sent, and the error gives the document's passage
     count.
-15. **Not built: hybrid search and re-ranking** (section 8.6). There was not enough time to build them and
+15. **A daily budget for embedded passages** (section 9, resource limits). The passage limit keeps one
+    document from using up the day's quota, but a user may upload 20 documents a day, so four long ones
+    still could, and then every question would fail until the quota resets. All documents now share a
+    budget of 500 embedded passages in any 24 hours. That leaves the rest for questions: at most 200 a
+    day, or 400 when two of the app's UTC days fall inside one of Gemini's, which start at midnight
+    Pacific time. The budget is counted in hourly buckets, so it holds whenever the provider's day
+    starts. It is checked after chunking and before anything is sent, and a document that does not fit
+    fails with the number of passages left and when there will be room. A retried job counts again,
+    which errs on the safe side.
+16. **Not built: hybrid search and re-ranking** (section 8.6). There was not enough time to build them and
     measure them properly. They are the first items under next steps in the README and in `EVALUATION.md`.
