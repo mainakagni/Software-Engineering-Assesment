@@ -8,6 +8,10 @@ is never served.
 Only answers that were found are reused: a refusal may have been bad luck, and asking again is
 cheap when retrieval already refuses. Copies are never reused either, so an answer's age counts
 from when the model wrote it.
+
+A document deleted while a question is being answered can leave an answer stored under a key that
+still lists it. No later request can produce that key again, because the document is gone, so the
+entry is never served.
 """
 
 import hashlib
