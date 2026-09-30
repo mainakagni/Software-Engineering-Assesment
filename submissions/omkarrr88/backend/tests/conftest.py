@@ -13,6 +13,7 @@ from typing import Any
 import pytest
 from alembic import command
 from alembic.config import Config
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
@@ -20,6 +21,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.config import Settings
 from app.db.base import Base
 from app.db.session import make_session_factory
+from app.main import create_app
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 TEST_DATABASE_URL = os.environ.get(
@@ -86,3 +88,11 @@ def db(session_factory: sessionmaker[Session]) -> Iterator[sessionmaker[Session]
     tables = ", ".join(table.name for table in Base.metadata.sorted_tables)
     with session_factory.begin() as session:
         session.execute(text(f"TRUNCATE {tables} CASCADE"))
+
+
+@pytest.fixture
+def client(settings: Settings, db: sessionmaker[Session]) -> Iterator[TestClient]:
+    app = create_app(settings)
+    app.state.session_factory = db
+    with TestClient(app) as test_client:
+        yield test_client
