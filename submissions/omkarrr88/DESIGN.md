@@ -440,4 +440,60 @@ then the extras.
 
 ## 16. Changes during the build
 
-Nothing yet.
+The sections above are the plan as written before the code. This is what changed while building it, and why.
+
+1. **The second refusal gate needs a verified quote** (sections 5 and 8.4). The plan counted an answer as grounded
+   if at least one citation pointed at a source that was actually sent. Now at least one of its quotes must also
+   pass the quote check. Citations whose quotes fail the check are still shown next to it, flagged. A source ID
+   is easy for the model to get right while the claim is wrong; a quote that really is in the passage is much
+   harder to fake. The cost is some extra refusals, which the evaluation measures.
+2. **Abandoned jobs** (section 5, upload step 8). The plan re-queued any job that had been running for more
+   than 10 minutes. That would have processed a long PDF twice on a healthy worker. A job is now re-queued only
+   when its worker has also stopped sending heartbeats. And a worker can only finish a job it still holds (the
+   same worker ID and lock time), so a job taken away from a slow worker is never completed twice.
+3. **More rate limits** (section 9). Uploads are limited too: 20 per user and 200 in total per day, because every
+   upload spends embedding quota. Counting stops at the first limit a request exceeds, so someone hammering their
+   own per-minute limit does not use up the global daily cap everyone shares. The worker deletes old counters
+   every minute rather than every hour. Each housekeeping step runs even if another one fails.
+4. **The client IP setting is required in production** (section 9). The app refuses to start in production
+   unless `TRUST_PROXY_HEADERS` is set. The code review found that a wrong default behind Render's proxy would
+   give every client the same address, so one person could lock everyone else out of signing in.
+5. **Answer cache details** (section 5, step 3). The cache key also covers the prompt version and the model
+   and retrieval settings, so changing any of them misses the cache. Only answers the model found are reused,
+   never refusals, and never a copy of a copy. Each reuse is stored as its own history entry, flagged `cached`
+   (migration `0002`).
+6. **Older pgvector versions** (section 8.3). The plan relied on pgvector 0.8's iterative index scan. Render
+   does not document which pgvector version it runs, and on an older one setting `hnsw.iterative_scan` can make
+   every question fail. The app now reads the installed version. Older versions get the longest HNSW candidate
+   list (`hnsw.ef_search = 1000`) instead.
+7. **HEAD requests** (section 6). `/health`, `/health/live` and the web UI also answer `HEAD`, because uptime
+   monitors often use it and a `405` would count as down. The HEAD routes are left out of the API docs.
+8. **Usage reports thinking tokens** (section 6). The model's thinking is billed as output, so `usage` has a
+   `thinking_tokens` field and the cost estimate includes it.
+9. **The demo account** (section 4). On Render the supervisor also seeds a shared demo account when
+   `SEED_DEMO` is set. Its documents are the evaluation corpus. A document a visitor deletes comes back on the
+   next restart.
+10. **Ten passages instead of six** (sections 5 and 8.3). The top-k experiment in `EVALUATION.md` compared
+    3, 6 and 10 retrieved passages. Only 10 found the evidence for every test question: one definition in the
+    NIST PDF ranks tenth among passages that all mention the same term. Refusals and injection handling did
+    not change, and the cost is about 850 more prompt tokens per question, so the default is now 10.
+11. **A similarity floor per embedding model** (section 8.4). Gemini's similarities sit in a narrow band. On
+    the evaluation set, off-topic questions score about 0.46 to 0.49 and on-topic ones 0.65 to 0.85, unlike
+    the offline embedder used in tests. So the floor now defaults per model: 0.60 for `gemini-embedding-001`
+    and 0.35 for the offline one. `EVALUATION.md` explains why 0.60 rather than the dev split's suggested
+    0.67. `RETRIEVAL_MIN_SIMILARITY` still overrides it.
+12. **Source IDs kept out of the answer** (section 8.4). The model sometimes wrote "(S1)" into the answer
+    text, which means nothing to a reader. The prompt now tells it not to. A marker is removed before the
+    answer is stored if every ID it names was a source that was really sent.
+13. **A designed web UI** (section 4). The first UI was deliberately plain. The final one keeps the same
+    flows and API but has a proper visual design:
+    - a document sidebar with live status;
+    - a question box with the scope switch;
+    - a placeholder while an answer is on its way;
+    - numbered sources;
+    - a dark theme.
+
+    The fonts are self-hosted, so the content security policy still allows nothing outside the app's own
+    origin.
+14. **Not built: hybrid search and re-ranking** (section 8.6). There was not enough time to build them and
+    measure them properly. They are the first items under next steps in the README and in `EVALUATION.md`.
