@@ -1,5 +1,7 @@
 """FastAPI application factory."""
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -18,6 +20,7 @@ from app.middleware import (
 )
 from app.providers.factory import build_embedder, build_llm
 from app.qa.routes import router as questions_router
+from app.web import mount_web_ui
 
 API_DESCRIPTION = """
 Upload documents, then ask questions about them. Answers are grounded in your documents and cite
@@ -58,4 +61,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth_router)
     app.include_router(documents_router)
     app.include_router(questions_router)
+    # Last, so the web UI's catch-all route never shadows an API route.
+    mount_web_ui(app, Path(settings.static_dir))
     return app

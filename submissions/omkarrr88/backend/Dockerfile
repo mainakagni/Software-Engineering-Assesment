@@ -14,7 +14,13 @@ COPY backend/pyproject.toml backend/uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-project
 
-# The web UI build stage is added together with the frontend.
+# The web UI, built with Node and served by the API from the same origin.
+FROM node:22-alpine AS web
+WORKDIR /web
+COPY frontend/package.json frontend/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
 
 FROM python:3.12-slim AS runtime
 ENV PATH="/opt/venv/bin:$PATH" \
@@ -27,6 +33,7 @@ COPY --from=deps /opt/venv /opt/venv
 COPY backend/alembic.ini ./
 COPY backend/migrations ./migrations
 COPY backend/app ./app
+COPY --from=web /web/dist ./app/static
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=3 \
