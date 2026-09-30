@@ -3,7 +3,7 @@
 from alembic import context
 from sqlalchemy import create_engine, pool, text
 
-from app.config import get_settings
+from app.config import DatabaseSettings
 from app.db import models  # noqa: F401  (imports the tables into Base.metadata)
 from app.db.base import Base
 from app.logging_config import configure_logging
@@ -13,7 +13,7 @@ MIGRATION_LOCK_ID = 20260930
 
 
 def run_migrations() -> None:
-    settings = get_settings()
+    settings = DatabaseSettings()
     configure_logging(settings.log_level)
     url = context.config.attributes.get("database_url") or settings.database_url
 

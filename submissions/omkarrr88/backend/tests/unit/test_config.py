@@ -27,10 +27,11 @@ def test_production_rejects_a_short_jwt_secret() -> None:
         make_test_settings(app_env="production", jwt_secret="too-short")
 
 
-def test_production_requires_a_gemini_key_when_gemini_is_used() -> None:
+@pytest.mark.parametrize("app_env", ["development", "production"])
+def test_gemini_providers_need_a_key(app_env: str) -> None:
     with pytest.raises(ValidationError, match="GEMINI_API_KEY"):
         make_test_settings(
-            app_env="production", jwt_secret="x" * 40, llm_provider="gemini", gemini_api_key=None
+            app_env=app_env, jwt_secret="x" * 40, embedding_provider="gemini", gemini_api_key=None
         )
 
 
