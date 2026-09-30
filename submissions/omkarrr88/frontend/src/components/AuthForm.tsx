@@ -1,9 +1,29 @@
-import { useState, type FormEvent } from 'react'
+import { LockKeyhole } from 'lucide-react'
+import { useId, useState, type FormEvent } from 'react'
 
 import { api, errorMessage } from '../api/client'
 import type { User } from '../api/types'
+import { AuthShowcase } from './AuthShowcase'
+import { AuthTabs, type Mode } from './AuthTabs'
+import { Brand } from './Brand'
+import { BusyButton } from './BusyButton'
+import { Callout } from './Callout'
+import { PasswordField } from './PasswordField'
 
-type Mode = 'login' | 'signup'
+const COPY = {
+  login: {
+    heading: 'Welcome back',
+    lead: 'Log in to ask questions about your documents.',
+    submit: 'Log in',
+    busy: 'Logging in…',
+  },
+  signup: {
+    heading: 'Create your account',
+    lead: 'All it takes is an email address and a password.',
+    submit: 'Create account',
+    busy: 'Creating your account…',
+  },
+} as const
 
 interface Props {
   notice: string | null
@@ -16,6 +36,7 @@ export function AuthForm({ notice, onAuthenticated }: Props) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const emailId = useId()
 
   function switchTo(next: Mode) {
     setMode(next)
@@ -24,6 +45,7 @@ export function AuthForm({ notice, onAuthenticated }: Props) {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (busy) return
     setBusy(true)
     setError(null)
     try {
@@ -35,83 +57,65 @@ export function AuthForm({ notice, onAuthenticated }: Props) {
     }
   }
 
-  const signingUp = mode === 'signup'
+  const copy = COPY[mode]
   return (
-    <main className="auth">
-      <div className="auth-card">
-        <h1 className="brand">DocuMind</h1>
-        <p className="tagline">Ask questions about your documents. Every answer cites its sources.</p>
+    <div className="auth">
+      <AuthShowcase />
+      <main className="auth-main">
+        <div className="auth-panel">
+          <div className="auth-panel-brand">
+            <Brand />
+          </div>
+          <div className="auth-heading">
+            <h1 className="serif">{copy.heading}</h1>
+            <p>{copy.lead}</p>
+          </div>
 
-        <div className="tabs" role="tablist" aria-label="Account">
-          <button
-            type="button"
-            role="tab"
-            id="tab-login"
-            aria-selected={!signingUp}
-            aria-controls="auth-form"
-            onClick={() => switchTo('login')}
-          >
-            Log in
-          </button>
-          <button
-            type="button"
-            role="tab"
-            id="tab-signup"
-            aria-selected={signingUp}
-            aria-controls="auth-form"
-            onClick={() => switchTo('signup')}
-          >
-            Sign up
-          </button>
+          <AuthTabs mode={mode} onChange={switchTo}>
+            {notice && <Callout tone="info">{notice}</Callout>}
+            <form onSubmit={submit} className="auth-form">
+              <div className="field">
+                <label className="field-label" htmlFor={emailId}>
+                  Email
+                </label>
+                <input
+                  id={emailId}
+                  className="input"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </div>
+              <PasswordField
+                signingUp={mode === 'signup'}
+                value={password}
+                onChange={setPassword}
+              />
+              {error && (
+                <Callout tone="error" announce>
+                  {error}
+                </Callout>
+              )}
+              <BusyButton
+                type="submit"
+                className="button primary block"
+                busy={busy}
+                busyText={copy.busy}
+              >
+                {copy.submit}
+              </BusyButton>
+            </form>
+          </AuthTabs>
+
+          <p className="auth-foot">
+            <LockKeyhole size={14} className="icon" />
+            Your documents stay private to your account.
+          </p>
         </div>
-
-        {notice && <p className="notice">{notice}</p>}
-
-        <form
-          id="auth-form"
-          role="tabpanel"
-          aria-labelledby={signingUp ? 'tab-signup' : 'tab-login'}
-          onSubmit={submit}
-          className="stack"
-        >
-          <label>
-            Email
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              autoComplete={signingUp ? 'new-password' : 'current-password'}
-              required
-              minLength={signingUp ? 8 : undefined}
-              maxLength={128}
-              aria-describedby={signingUp ? 'password-hint' : undefined}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
-          {signingUp && (
-            <p id="password-hint" className="hint">
-              At least 8 characters.
-            </p>
-          )}
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
-          <button type="submit" className="primary" disabled={busy}>
-            {busy ? 'Please wait...' : signingUp ? 'Create account' : 'Log in'}
-          </button>
-        </form>
-      </div>
-    </main>
+      </main>
+    </div>
   )
 }

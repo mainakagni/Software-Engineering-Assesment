@@ -1,8 +1,10 @@
+import { LoaderCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { ApiError, api, errorMessage, setSessionExpiredHandler, tokenStore } from './api/client'
 import type { User } from './api/types'
 import { AuthForm } from './components/AuthForm'
+import { Logo } from './components/Brand'
 import { Workspace } from './components/Workspace'
 
 export default function App() {
@@ -49,9 +51,13 @@ export default function App() {
 
   if (checking) {
     return (
-      <p className="loading" role="status">
-        Checking your session...
-      </p>
+      <div className="loading-screen">
+        <Logo />
+        <p className="loading-status" role="status">
+          <LoaderCircle size={16} className="spin" />
+          Checking your session…
+        </p>
+      </div>
     )
   }
   if (!user) {

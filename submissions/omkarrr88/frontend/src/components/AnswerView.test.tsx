@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { makeAnswer, makeCitation } from '../test/fixtures'
-import { AnswerView } from './AnswerView'
+import { AnswerView, PendingAnswer } from './AnswerView'
 
 describe('AnswerView', () => {
   it('shows the answer, its sources and the usage', () => {
@@ -42,5 +42,24 @@ describe('AnswerView', () => {
 
     expect(container.querySelector('article')).toHaveClass('not-found')
     expect(screen.queryByRole('heading', { name: 'Sources' })).not.toBeInTheDocument()
+  })
+
+  it('says when the answer needed no model call', () => {
+    const usage = { ...makeAnswer().usage, model: null, total_tokens: 0 }
+    render(<AnswerView answer={makeAnswer({ found: false, citations: [], usage })} />)
+
+    expect(screen.getByText('no model call')).toBeInTheDocument()
+    expect(screen.getByText('0 tokens')).toBeInTheDocument()
+  })
+})
+
+describe('PendingAnswer', () => {
+  it('shows the question and that it is being answered', () => {
+    render(<PendingAnswer question="Who approves travel?" />)
+
+    expect(screen.getByRole('heading', { name: 'Who approves travel?' })).toBeInTheDocument()
+    expect(screen.getByText('Searching your documents…')).toBeInTheDocument()
+    // The workspace announces it; a second live region here would repeat it.
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })

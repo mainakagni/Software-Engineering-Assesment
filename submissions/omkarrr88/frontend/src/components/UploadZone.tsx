@@ -1,71 +1,105 @@
+import { LoaderCircle, Upload } from 'lucide-react'
 import { useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 
 import { api, errorMessage } from '../api/client'
 import type { DocumentItem } from '../api/types'
 import { ACCEPTED_EXTENSIONS, uploadProblem } from '../lib/format'
+import { Callout } from './Callout'
 
 interface Props {
   onUploaded: (document: DocumentItem) => void
 }
 
+interface Progress {
+  name: string
+  waiting: number
+}
+
 export function UploadZone({ onUploaded }: Props) {
   const input = useRef<HTMLInputElement>(null)
+  // Files added while an upload runs wait here and go up one at a time, in order.
+  const queue = useRef<File[]>([])
+  const running = useRef(false)
   const [dragging, setDragging] = useState(false)
-  const [uploading, setUploading] = useState<string | null>(null)
+  const [progress, setProgress] = useState<Progress | null>(null)
   const [problems, setProblems] = useState<string[]>([])
 
-  async function uploadAll(files: File[]) {
-    if (uploading !== null || files.length === 0) return
-    const found: string[] = []
-    for (const file of files) {
-      const problem = uploadProblem(file)
-      if (problem) {
-        found.push(problem)
-        continue
-      }
-      setUploading(file.name)
-      try {
-        onUploaded(await api.uploadDocument(file))
-      } catch (caught) {
-        found.push(`${file.name}: ${errorMessage(caught)}`)
-      }
+  async function add(files: File[]) {
+    queue.current = [...queue.current, ...files]
+    if (running.current) {
+      setProgress((current) => current && { ...current, waiting: queue.current.length })
+      return
     }
-    setUploading(null)
+    if (queue.current.length === 0) return
+    running.current = true
+    setProblems([])
+    const found: string[] = []
+    for (let file = takeNext(); file; file = takeNext()) {
+      const problem = uploadProblem(file) ?? (await upload(file))
+      if (problem) found.push(problem)
+    }
+    running.current = false
+    setProgress(null)
     setProblems(found)
+  }
+
+  function takeNext(): File | undefined {
+    const [next, ...rest] = queue.current
+    queue.current = rest
+    return next
+  }
+
+  /** Uploads one file and says why it failed, or returns null. */
+  async function upload(file: File): Promise<string | null> {
+    setProgress({ name: file.name, waiting: queue.current.length })
+    try {
+      onUploaded(await api.uploadDocument(file))
+      return null
+    } catch (caught) {
+      return `${file.name}: ${errorMessage(caught)}`
+    }
   }
 
   function onChange(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? [])
     event.target.value = '' // so choosing the same file again still fires a change
-    void uploadAll(files)
+    void add(files)
+  }
+
+  function onDragLeave(event: DragEvent<HTMLDivElement>) {
+    // Moving onto a child element also fires dragleave; only leaving the zone counts.
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false)
   }
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault()
     setDragging(false)
-    void uploadAll(Array.from(event.dataTransfer.files))
+    void add(Array.from(event.dataTransfer.files))
   }
 
   return (
-    <section className="panel" aria-labelledby="upload-title">
-      <h2 id="upload-title">Add documents</h2>
+    <div className="upload">
       <div
         className={dragging ? 'dropzone dragging' : 'dropzone'}
         onDragOver={(event) => {
           event.preventDefault()
           setDragging(true)
         }}
-        onDragLeave={() => setDragging(false)}
+        onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
-        <p>Drop PDF, .txt or .md files here</p>
-        <button
-          type="button"
-          disabled={uploading !== null}
-          onClick={() => input.current?.click()}
-        >
-          Choose files
-        </button>
+        <span className="dropzone-icon">
+          <Upload size={16} />
+        </span>
+        <div className="dropzone-text">
+          <p>
+            <button type="button" className="link-button" onClick={() => input.current?.click()}>
+              Choose files
+            </button>{' '}
+            or drop them here
+          </p>
+          <p className="field-hint">PDF, .txt or .md, up to 10 MB each</p>
+        </div>
         <input
           ref={input}
           type="file"
@@ -74,20 +108,33 @@ export function UploadZone({ onUploaded }: Props) {
           hidden
           onChange={onChange}
         />
-        <p className="hint">Up to 10 MB each, 20 documents per account.</p>
       </div>
-      {uploading && (
-        <p className="status" role="status">
-          Uploading {uploading}...
-        </p>
-      )}
+      <p className="upload-status" role="status">
+        {progress && (
+          <>
+            <LoaderCircle size={14} className="spin" />
+            <span>
+              Uploading {progress.name}…
+              {progress.waiting > 0 && (
+                <span className="upload-waiting"> {progress.waiting} more waiting</span>
+              )}
+            </span>
+          </>
+        )}
+      </p>
       {problems.length > 0 && (
-        <ul className="error" role="alert">
-          {problems.map((problem) => (
-            <li key={problem}>{problem}</li>
-          ))}
-        </ul>
+        <Callout tone="error" announce>
+          {problems.length === 1 ? (
+            problems[0]
+          ) : (
+            <ul>
+              {problems.map((problem, index) => (
+                <li key={`${index}:${problem}`}>{problem}</li>
+              ))}
+            </ul>
+          )}
+        </Callout>
       )}
-    </section>
+    </div>
   )
 }

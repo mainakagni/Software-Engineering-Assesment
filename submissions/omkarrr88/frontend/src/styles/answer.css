@@ -1,0 +1,347 @@
+/* --- Answer -------------------------------------------------------------------------------- */
+
+.answer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  padding: 1.4rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  animation: rise 250ms var(--ease) both;
+}
+
+@media (min-width: 640px) {
+  .answer {
+    padding: 1.75rem 1.9rem;
+  }
+}
+
+/* Questions, answers and passages can hold long URLs or file names, which must not widen the page. */
+.answer-question,
+.answer-text,
+.not-found-title,
+.citation blockquote,
+.passage {
+  overflow-wrap: anywhere;
+}
+
+.answer-question {
+  font-size: 1.5rem;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  scroll-margin-top: 0.75rem;
+}
+
+.answer-text {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.not-found-note {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 1rem 1.1rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.not-found-note .icon {
+  margin-top: 0.1rem;
+  color: var(--muted);
+}
+
+.not-found-note > div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.not-found-title {
+  font-weight: 600;
+}
+
+.sources {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.sources-title {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.citations {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+  padding: 0;
+  list-style: none;
+}
+
+.citation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 150ms var(--ease);
+}
+
+.citation:hover {
+  border-color: var(--border-strong);
+}
+
+.citation-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.15rem 0.6rem;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.citation-where {
+  grid-column: 2 / -1;
+  font-size: 0.75rem;
+}
+
+.citation-index {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.citation-document {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-weight: 550;
+}
+
+.citation-location + .citation-location::before {
+  margin-right: 0.55rem;
+  color: var(--border-strong);
+  content: '·';
+}
+
+.citation-score {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.citation blockquote {
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--brand-mark);
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+.citation-warning {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  color: var(--warning);
+  font-size: 0.8125rem;
+}
+
+.citation summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-weight: 550;
+  list-style: none;
+  cursor: pointer;
+}
+
+.citation summary::-webkit-details-marker {
+  display: none;
+}
+
+.citation summary:hover {
+  color: var(--accent-hover);
+}
+
+.citation summary .icon {
+  transition: transform 150ms var(--ease);
+}
+
+.citation details[open] summary .icon {
+  transform: rotate(90deg);
+}
+
+.passage {
+  margin-top: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.answer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 550;
+}
+
+.pending-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.skeleton-lines {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.skeleton-lines .skeleton:nth-child(2) {
+  width: 92%;
+}
+
+.skeleton-lines .skeleton:nth-child(3) {
+  width: 60%;
+}
+
+/* --- History ------------------------------------------------------------------------------- */
+
+.history {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.history-list {
+  display: grid;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  list-style: none;
+}
+
+.history-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  transition: background-color 150ms var(--ease);
+}
+
+.history-item:hover {
+  background: var(--surface-2);
+}
+
+.history-item:focus-visible {
+  outline-offset: -2px;
+}
+
+.history-item[aria-current='true'] {
+  background: var(--surface-2);
+  box-shadow: inset 2px 0 0 var(--ink);
+}
+
+.history-item .icon {
+  color: var(--muted);
+}
+
+.history-question {
+  overflow: hidden;
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-age {
+  color: var(--muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* On phones the age goes under the question, which then keeps the full width. */
+@media (max-width: 479px) {
+  .history-item {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 0.1rem;
+  }
+
+  .history-age {
+    grid-column: 2;
+  }
+}
+
+/* --- Session check ------------------------------------------------------------------------- */
+
+.loading-screen {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.loading-screen .logo {
+  width: 40px;
+  height: 40px;
+}
+
+.loading-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}

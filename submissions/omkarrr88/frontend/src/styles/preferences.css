@@ -1,0 +1,38 @@
+/* --- Touch and motion ---------------------------------------------------------------------- */
+
+@media (pointer: coarse) {
+  .button,
+  .button.small,
+  .input,
+  .segmented button {
+    min-height: 44px;
+  }
+
+  .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .input-wrap .icon-button {
+    top: 0;
+    right: 0;
+  }
+
+  .scope-option > span {
+    padding: 0.45rem 0.8rem;
+  }
+
+  .chip span {
+    padding: 0.45rem 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

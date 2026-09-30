@@ -1,0 +1,190 @@
+/* --- Header -------------------------------------------------------------------------------- */
+
+.app {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: var(--header-height);
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--border);
+  /* Mostly opaque: large text scrolling underneath should blur away, not show through. */
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: saturate(1.5) blur(16px);
+}
+
+@media (min-width: 640px) {
+  .app-header {
+    padding: 0 1.25rem;
+  }
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.header-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 30px;
+  padding: 0 0.6rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  font-weight: 550;
+  text-decoration: none;
+  transition:
+    background-color 150ms var(--ease),
+    color 150ms var(--ease);
+}
+
+.header-link:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.account {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0 0.35rem;
+  padding: 0 0.75rem;
+  border-right: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.account-email {
+  overflow: hidden;
+  max-width: 16rem;
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 639px) {
+  .header-link-text {
+    display: none;
+  }
+
+  .account-email {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .account {
+    margin: 0;
+    padding: 0 0.25rem;
+    border: 0;
+  }
+
+  .app-header .button.small {
+    padding: 0 0.5rem;
+  }
+}
+
+/* --- Workspace layout ---------------------------------------------------------------------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .workspace {
+    grid-template-columns: 320px minmax(0, 1fr);
+    min-height: calc(100dvh - var(--header-height));
+  }
+}
+
+@media (min-width: 1280px) {
+  .workspace {
+    grid-template-columns: 352px minmax(0, 1fr);
+  }
+}
+
+.library {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.library-inner {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  padding: 1.25rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .library-inner {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+/* On wide screens the column fills the page height and its contents stay in view. */
+@media (min-width: 1024px) {
+  .library {
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+  }
+
+  .library-inner {
+    position: sticky;
+    top: var(--header-height);
+    max-height: calc(100dvh - var(--header-height));
+    overflow-y: auto;
+  }
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.75rem 1rem 4rem;
+}
+
+@media (min-width: 640px) {
+  .stage {
+    padding: 2.5rem 1.5rem 5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .stage {
+    padding: 3.5rem 2.5rem 6rem;
+  }
+}

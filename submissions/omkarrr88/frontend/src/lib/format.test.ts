@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatAge, formatBytes, formatCost, formatPages, uploadProblem } from './format'
+import {
+  documentKind,
+  formatAge,
+  formatBytes,
+  formatCost,
+  formatPages,
+  plural,
+  uploadProblem,
+} from './format'
 
 function file(name: string, size: number): File {
   const upload = new File(['x'], name)
@@ -41,10 +49,24 @@ describe('formatting', () => {
     expect(formatCost(0.00052)).toBe('$0.0005')
   })
 
+  it('names the kind of document from its file name', () => {
+    expect(documentKind('Guide.PDF')).toBe('pdf')
+    expect(documentKind('notes.md')).toBe('md')
+    expect(documentKind('notes.markdown')).toBe('md')
+    expect(documentKind('log.txt')).toBe('txt')
+  })
+
+  it('counts with the right plural', () => {
+    expect(plural(1, 'page')).toBe('1 page')
+    expect(plural(1200, 'passage')).toBe('1,200 passages')
+  })
+
   it('formats ages relative to now', () => {
     const now = new Date('2026-09-30T12:00:00Z')
     expect(formatAge('2026-09-30T11:59:30Z', now)).toBe('just now')
-    expect(formatAge('2026-09-30T11:55:00Z', now)).toMatch(/5 minutes ago/)
-    expect(formatAge('2026-09-28T12:00:00Z', now)).toMatch(/2 days ago/)
+    expect(formatAge('2026-09-30T11:55:00Z', now)).toBe('5 minutes ago')
+    expect(formatAge('2026-09-30T09:00:00Z', now)).toBe('3 hours ago')
+    expect(formatAge('2026-09-29T12:00:00Z', now)).toBe('yesterday')
+    expect(formatAge('2026-09-28T12:00:00Z', now)).toBe('2 days ago')
   })
 })

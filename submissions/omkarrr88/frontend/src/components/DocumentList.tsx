@@ -1,114 +1,56 @@
-import { useState } from 'react'
-
-import { ApiError, api, errorMessage } from '../api/client'
-import type { DocumentItem, DocumentStatus } from '../api/types'
-import { formatBytes } from '../lib/format'
-
-const STATUS_LABELS: Record<DocumentStatus, string> = {
-  queued: 'Queued',
-  processing: 'Processing',
-  ready: 'Ready',
-  failed: 'Failed',
-}
+import type { DocumentItem } from '../api/types'
+import { Callout } from './Callout'
+import { DocumentRow } from './DocumentRow'
 
 interface Props {
   documents: DocumentItem[] | null
   error: string | null
-  onDeleted: (id: string) => void
+  onDeleted: (document: DocumentItem) => void
 }
 
 export function DocumentList({ documents, error, onDeleted }: Props) {
-  const [confirming, setConfirming] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-
-  async function remove(id: string) {
-    setDeleting(id)
-    setDeleteError(null)
-    try {
-      await api.deleteDocument(id)
-      onDeleted(id)
-    } catch (caught) {
-      if (caught instanceof ApiError && caught.status === 404) onDeleted(id) // already gone
-      else setDeleteError(errorMessage(caught))
-    } finally {
-      setDeleting(null)
-      setConfirming(null)
-    }
-  }
-
   return (
-    <section className="panel" aria-labelledby="documents-title">
-      <h2 id="documents-title">Your documents</h2>
+    <>
       {error && (
-        <p className="error" role="alert">
+        <Callout tone="error" announce>
           {error}
-        </p>
+        </Callout>
       )}
-      {deleteError && (
-        <p className="error" role="alert">
-          {deleteError}
-        </p>
+      {documents === null && !error && <LoadingRows />}
+      {documents?.length === 0 && (
+        <div className="empty">
+          <strong>No documents yet</strong>
+          <span>Add a PDF, text or Markdown file, and you can ask about it once it is ready.</span>
+        </div>
       )}
-      {documents === null && !error && <p className="muted">Loading...</p>}
-      {documents?.length === 0 && <p className="muted">No documents yet.</p>}
       {documents && documents.length > 0 && (
         <ul className="documents">
           {documents.map((document) => (
-            <li key={document.id} className="document">
-              <div className="document-head">
-                <span className="filename" title={document.filename}>
-                  {document.filename}
-                </span>
-                <span className={`badge status-${document.status}`}>
-                  {STATUS_LABELS[document.status]}
-                </span>
-              </div>
-              <p className="document-meta">{describe(document)}</p>
-              {document.status === 'failed' && document.error && (
-                <p className="error">{document.error}</p>
-              )}
-              <div className="document-actions">
-                {confirming === document.id ? (
-                  <>
-                    <span>Delete this document?</span>
-                    <button
-                      type="button"
-                      className="danger"
-                      disabled={deleting === document.id}
-                      onClick={() => void remove(document.id)}
-                    >
-                      {deleting === document.id ? 'Deleting...' : 'Delete'}
-                    </button>
-                    <button type="button" onClick={() => setConfirming(null)}>
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    aria-label={`Delete ${document.filename}`}
-                    onClick={() => setConfirming(document.id)}
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            </li>
+            <DocumentRow key={document.id} document={document} onDeleted={onDeleted} />
           ))}
         </ul>
       )}
-    </section>
+    </>
   )
 }
 
-function describe(document: DocumentItem): string {
-  const parts = [formatBytes(document.size_bytes)]
-  if (document.page_count !== null) parts.push(plural(document.page_count, 'page'))
-  if (document.chunk_count !== null) parts.push(plural(document.chunk_count, 'passage'))
-  return parts.join(' · ')
-}
-
-function plural(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`
+function LoadingRows() {
+  return (
+    <>
+      <p className="visually-hidden" role="status">
+        Loading your documents…
+      </p>
+      <ul className="documents" aria-hidden="true">
+        {[0, 1, 2].map((row) => (
+          <li key={row} className="document">
+            <span className="kind skeleton-block" />
+            <span className="document-body">
+              <span className="skeleton" />
+              <span className="skeleton short" />
+            </span>
+          </li>
+        ))}
+      </ul>
+    </>
+  )
 }
