@@ -69,7 +69,9 @@ class Settings(DatabaseSettings):
     worker_provider_max_retries: int = 4
     worker_provider_max_retry_wait_seconds: float = 65
 
-    retrieval_top_k: int = 6
+    # 10 rather than 6: the evaluation's top-k experiment (EVALUATION.md) found the evidence for
+    # every question only at 10, for about 50% more prompt tokens and no change in typical latency.
+    retrieval_top_k: int = 10
     retrieval_min_similarity: float | None = None  # unset: the embedding model's default
     chunk_size_chars: int = 1400
     chunk_overlap_chars: int = 200

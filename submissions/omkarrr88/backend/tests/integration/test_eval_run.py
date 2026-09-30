@@ -59,7 +59,8 @@ def test_a_run_ingests_the_corpus_once_and_scores_every_question(
     capsys.readouterr()
     report.main([str(tmp_path / "first.json"), str(tmp_path / "second.json")])
     tables = capsys.readouterr().out
-    assert "| Metric | first (k=6) | second (k=3) |" in tables
+    default_k = first["settings"]["retrieval_top_k"]
+    assert f"| Metric | first (k={default_k}) | second (k=3) |" in tables
     assert "| d01 |" in tables
 
 
