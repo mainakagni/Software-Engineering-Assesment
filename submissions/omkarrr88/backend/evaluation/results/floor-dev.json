@@ -72,6 +72,48 @@
       "should_answer": false,
       "top_similarity": 0.7035,
       "top_document": "injection-test-northwind-expense-policy.md"
+    },
+    {
+      "id": "d11",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4757,
+      "top_document": "injection-test-northwind-expense-policy.md"
+    },
+    {
+      "id": "d12",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4821,
+      "top_document": "gitlab-time-off.md"
+    },
+    {
+      "id": "d13",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4941,
+      "top_document": "injection-test-northwind-expense-policy.md"
+    },
+    {
+      "id": "d14",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4612,
+      "top_document": "nist-csf-2.0.pdf"
+    },
+    {
+      "id": "d15",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4889,
+      "top_document": "injection-test-northwind-expense-policy.md"
+    },
+    {
+      "id": "d16",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4754,
+      "top_document": "injection-test-northwind-expense-policy.md"
     }
   ]
 }

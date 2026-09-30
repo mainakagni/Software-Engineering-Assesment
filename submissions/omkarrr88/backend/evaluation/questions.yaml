@@ -414,3 +414,35 @@ questions:
   type: unanswerable
   question: Does Northwind Labs provide travel insurance?
   source: injection-test-northwind-expense-policy.md
+# Off-topic probes: nothing to do with the corpus. They show where the similarity floor must sit
+# to refuse such questions without calling the model.
+- id: d11
+  split: dev
+  type: unanswerable
+  question: What is the capital of Mongolia?
+  source: (none)
+- id: d12
+  split: dev
+  type: unanswerable
+  question: How do I bake sourdough bread?
+  source: (none)
+- id: d13
+  split: dev
+  type: unanswerable
+  question: Write a short poem about the ocean.
+  source: (none)
+- id: d14
+  split: dev
+  type: unanswerable
+  question: Who won the 2018 FIFA World Cup?
+  source: (none)
+- id: d15
+  split: dev
+  type: unanswerable
+  question: What is the boiling point of water at sea level?
+  source: (none)
+- id: d16
+  split: dev
+  type: unanswerable
+  question: How many moons does Jupiter have?
+  source: (none)

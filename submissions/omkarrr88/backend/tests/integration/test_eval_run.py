@@ -50,11 +50,12 @@ def test_a_run_ingests_the_corpus_once_and_scores_every_question(
     second = json.loads((tmp_path / "second.json").read_text())
     assert (first["split"], first["settings"]["llm_model"]) == ("dev", "fake")
     assert second["settings"]["retrieval_top_k"] == 3
-    assert len(first["questions"]) == 10
+    dev_questions = len(load_questions().split("dev"))
+    assert len(first["questions"]) == dev_questions
     record = first["questions"][0]
     assert {"score", "citations", "retrieved", "usage"} <= record.keys()
     assert all("text" not in chunk for chunk in record["retrieved"])  # saved without passages
-    assert first["summary"]["questions"] == 10
+    assert first["summary"]["questions"] == dev_questions
 
     capsys.readouterr()
     report.main([str(tmp_path / "first.json"), str(tmp_path / "second.json")])
