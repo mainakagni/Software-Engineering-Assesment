@@ -9,9 +9,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import get_settings
-from app.db.models import Document
+from app.db.models import Chunk, Document
+from app.providers.factory import build_embedder
 from evaluation import report, run
-from evaluation.dataset import corpus_files
+from evaluation.corpus_db import ingest_corpus
+from evaluation.dataset import corpus_files, load_questions
+from evaluation.metrics import contains_evidence
 from tests.conftest import TEST_DATABASE_URL
 
 
@@ -58,3 +61,27 @@ def test_a_run_ingests_the_corpus_once_and_scores_every_question(
     tables = capsys.readouterr().out
     assert "| Metric | first (k=6) | second (k=3) |" in tables
     assert "| d01 |" in tables
+
+
+@pytest.mark.usefixtures("offline_env")
+def test_every_evidence_passage_is_inside_one_chunk(db: sessionmaker[Session]) -> None:
+    """Evidence split across two chunks could never be retrieved whole, undercounting hit rate."""
+    settings = get_settings()
+    user_id = ingest_corpus(db, settings, build_embedder(settings, for_worker=True))
+    chunks: dict[str, list[str]] = {}
+    with db() as session:
+        rows = session.execute(
+            select(Document.filename, Chunk.text)
+            .join(Chunk, Chunk.document_id == Document.id)
+            .where(Document.owner_id == user_id)
+        )
+        for filename, text in rows:
+            chunks.setdefault(filename, []).append(text)
+
+    split = [
+        question.id
+        for question in load_questions().questions
+        if question.evidence
+        and not any(contains_evidence(text, question.evidence) for text in chunks[question.source])
+    ]
+    assert split == []
