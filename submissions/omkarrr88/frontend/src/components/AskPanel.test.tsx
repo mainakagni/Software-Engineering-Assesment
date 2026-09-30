@@ -25,7 +25,7 @@ describe('AskPanel', () => {
     render(<AskPanel readyDocuments={[TRAVEL, LEAVE]} processing={false} onAnswer={onAnswer} />)
 
     await userEvent.type(screen.getByLabelText('Your question'), 'How early should I book?')
-    await userEvent.click(screen.getByLabelText('Only the ones I pick'))
+    await userEvent.click(screen.getByLabelText('Selected documents'))
     expect(screen.getByRole('button', { name: 'Ask' })).toBeDisabled() // nothing picked yet
     await userEvent.click(screen.getByLabelText('leave.md'))
     await userEvent.click(screen.getByRole('button', { name: 'Ask' }))
@@ -77,7 +77,7 @@ describe('AskPanel', () => {
 
     await userEvent.type(box, 'Who approves travel?{Enter}')
     expect(box).toHaveAttribute('readonly')
-    expect(screen.getByRole('button', { name: 'Searching your documents...' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Searching…' })).toBeDisabled()
 
     pending.resolve?.(ok(makeAnswer()))
     await waitFor(() => expect(box).not.toHaveAttribute('readonly'))

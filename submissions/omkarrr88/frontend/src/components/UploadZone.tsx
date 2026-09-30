@@ -1,3 +1,4 @@
+import { CircleAlert, LoaderCircle, Upload } from 'lucide-react'
 import { useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 
 import { api, errorMessage } from '../api/client'
@@ -40,6 +41,11 @@ export function UploadZone({ onUploaded }: Props) {
     void uploadAll(files)
   }
 
+  function onDragLeave(event: DragEvent<HTMLDivElement>) {
+    // Moving onto a child element also fires dragleave; only leaving the zone counts.
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false)
+  }
+
   function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault()
     setDragging(false)
@@ -47,25 +53,33 @@ export function UploadZone({ onUploaded }: Props) {
   }
 
   return (
-    <section className="panel" aria-labelledby="upload-title">
-      <h2 id="upload-title">Add documents</h2>
+    <div className="upload">
       <div
         className={dragging ? 'dropzone dragging' : 'dropzone'}
         onDragOver={(event) => {
           event.preventDefault()
           setDragging(true)
         }}
-        onDragLeave={() => setDragging(false)}
+        onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
-        <p>Drop PDF, .txt or .md files here</p>
-        <button
-          type="button"
-          disabled={uploading !== null}
-          onClick={() => input.current?.click()}
-        >
-          Choose files
-        </button>
+        <span className="dropzone-icon">
+          <Upload size={16} />
+        </span>
+        <div className="dropzone-text">
+          <p>
+            <button
+              type="button"
+              className="link-button"
+              disabled={uploading !== null}
+              onClick={() => input.current?.click()}
+            >
+              Choose files
+            </button>{' '}
+            or drop them here
+          </p>
+          <p className="field-hint">PDF, .txt or .md, up to 10 MB each</p>
+        </div>
         <input
           ref={input}
           type="file"
@@ -74,20 +88,27 @@ export function UploadZone({ onUploaded }: Props) {
           hidden
           onChange={onChange}
         />
-        <p className="hint">Up to 10 MB each, 20 documents per account.</p>
       </div>
       {uploading && (
-        <p className="status" role="status">
-          Uploading {uploading}...
+        <p className="upload-status" role="status">
+          <LoaderCircle size={14} className="spin" />
+          Uploading {uploading}…
         </p>
       )}
       {problems.length > 0 && (
-        <ul className="error" role="alert">
-          {problems.map((problem) => (
-            <li key={problem}>{problem}</li>
-          ))}
-        </ul>
+        <div className="callout error" role="alert">
+          <CircleAlert size={16} className="icon" />
+          {problems.length === 1 ? (
+            <span>{problems[0]}</span>
+          ) : (
+            <ul>
+              {problems.map((problem) => (
+                <li key={problem}>{problem}</li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
-    </section>
+    </div>
   )
 }

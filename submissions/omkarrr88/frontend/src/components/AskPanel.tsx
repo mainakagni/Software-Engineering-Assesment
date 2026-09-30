@@ -1,3 +1,4 @@
+import { CircleAlert, LoaderCircle } from 'lucide-react'
 import { useId, useState, type FormEvent, type KeyboardEvent } from 'react'
 
 import { api, errorMessage } from '../api/client'
@@ -9,9 +10,11 @@ interface Props {
   readyDocuments: DocumentItem[]
   processing: boolean
   onAnswer: (answer: Answer) => void
+  /** Called with the question when asking starts, and with null when it ends either way. */
+  onAsking?: (question: string | null) => void
 }
 
-export function AskPanel({ readyDocuments, processing, onAnswer }: Props) {
+export function AskPanel({ readyDocuments, processing, onAnswer, onAsking }: Props) {
   const [question, setQuestion] = useState('')
   const [onlySelected, setOnlySelected] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
@@ -19,26 +22,31 @@ export function AskPanel({ readyDocuments, processing, onAnswer }: Props) {
   const [error, setError] = useState<string | null>(null)
   const hintId = useId()
 
-  // A selected document may have been deleted since; only ready ones can be searched.
+  // Picking only makes sense with two or more ready documents. A picked document may have been
+  // deleted since; only ready ones can be searched.
+  const choosing = readyDocuments.length > 1
+  const scoped = choosing && onlySelected
   const selectedReady = selected.filter((id) => readyDocuments.some((d) => d.id === id))
   const trimmed = question.trim()
   const canAsk =
     !asking &&
     trimmed.length >= 3 &&
     readyDocuments.length > 0 &&
-    (!onlySelected || selectedReady.length > 0)
+    (!scoped || selectedReady.length > 0)
 
   async function submit(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
     if (!canAsk) return
     setAsking(true)
     setError(null)
+    onAsking?.(trimmed)
     try {
-      onAnswer(await api.ask(trimmed, onlySelected ? selectedReady : null))
+      onAnswer(await api.ask(trimmed, scoped ? selectedReady : null))
     } catch (caught) {
       setError(errorMessage(caught))
     } finally {
       setAsking(false)
+      onAsking?.(null)
     }
   }
 
@@ -56,14 +64,30 @@ export function AskPanel({ readyDocuments, processing, onAnswer }: Props) {
     )
   }
 
+  function note(): string | null {
+    if (readyDocuments.length === 0) {
+      return processing
+        ? 'Your documents are still being processed. You can ask once one is ready.'
+        : 'Upload a document to start asking questions.'
+    }
+    return scoped && selectedReady.length === 0 ? 'Pick at least one document to search.' : null
+  }
+
+  const composerNote = note()
   return (
-    <section className="panel" aria-labelledby="ask-title">
-      <h2 id="ask-title">Ask a question</h2>
-      <form onSubmit={submit} className="stack">
+    <section className="ask" aria-labelledby="ask-title">
+      <div className="intro">
+        <h2 id="ask-title" className="serif">
+          Ask your documents
+        </h2>
+        <p>Answers come only from your files, and each one shows the passage it was taken from.</p>
+      </div>
+
+      <form onSubmit={submit} className="composer">
         <textarea
           aria-label="Your question"
           aria-describedby={hintId}
-          placeholder="For example: How many days in advance should flights be booked?"
+          placeholder="Ask a question about your documents…"
           rows={3}
           maxLength={MAX_QUESTION_LENGTH}
           value={question}
@@ -73,68 +97,75 @@ export function AskPanel({ readyDocuments, processing, onAnswer }: Props) {
           readOnly={asking}
         />
 
-        {readyDocuments.length === 0 && (
-          <p className="muted">
-            {processing
-              ? 'Your documents are still being processed. You can ask once one is ready.'
-              : 'Upload a document to start asking questions.'}
-          </p>
+        {scoped && (
+          <ul className="picker" aria-label="Documents to search">
+            {readyDocuments.map((document) => (
+              <li key={document.id}>
+                <label className="chip">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(document.id)}
+                    onChange={() => toggle(document.id)}
+                  />
+                  <span>{document.filename}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
         )}
 
-        {readyDocuments.length > 1 && (
-          <fieldset className="scope">
-            <legend>Search in</legend>
-            <label className="inline">
-              <input
-                type="radio"
-                name="scope"
-                checked={!onlySelected}
-                onChange={() => setOnlySelected(false)}
-              />
-              All ready documents
-            </label>
-            <label className="inline">
-              <input
-                type="radio"
-                name="scope"
-                checked={onlySelected}
-                onChange={() => setOnlySelected(true)}
-              />
-              Only the ones I pick
-            </label>
-            {onlySelected && (
-              <ul className="picker">
-                {readyDocuments.map((document) => (
-                  <li key={document.id}>
-                    <label className="inline">
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(document.id)}
-                        onChange={() => toggle(document.id)}
-                      />
-                      {document.filename}
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </fieldset>
-        )}
-
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="row">
-          <button type="submit" className="primary" disabled={!canAsk}>
-            {asking ? 'Searching your documents...' : 'Ask'}
-          </button>
-          <span className="hint" id={hintId}>
-            Enter to ask, Shift+Enter for a new line
+        <div className="composer-bar">
+          {choosing && (
+            <fieldset className="scope">
+              <legend className="visually-hidden">Search in</legend>
+              <span className="scope-options">
+                <label className="scope-option">
+                  <input
+                    type="radio"
+                    name="scope"
+                    checked={!onlySelected}
+                    onChange={() => setOnlySelected(false)}
+                  />
+                  <span>
+                    All<span className="scope-extra"> documents</span>
+                  </span>
+                </label>
+                <label className="scope-option">
+                  <input
+                    type="radio"
+                    name="scope"
+                    checked={onlySelected}
+                    onChange={() => setOnlySelected(true)}
+                  />
+                  <span>
+                    Selected<span className="scope-extra"> documents</span>
+                  </span>
+                </label>
+              </span>
+            </fieldset>
+          )}
+          <span className="composer-hint" id={hintId}>
+            <kbd>Enter</kbd> to ask, <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line
           </span>
+          <button
+            type="submit"
+            className={asking ? 'button primary busy' : 'button primary'}
+            disabled={!canAsk}
+          >
+            {asking && <LoaderCircle size={16} className="spin" />}
+            {asking ? 'Searching…' : 'Ask'}
+          </button>
         </div>
+
+        {composerNote && <p className="composer-note">{composerNote}</p>}
       </form>
+
+      {error && (
+        <p className="callout error" role="alert">
+          <CircleAlert size={16} className="icon" />
+          <span>{error}</span>
+        </p>
+      )}
     </section>
   )
 }

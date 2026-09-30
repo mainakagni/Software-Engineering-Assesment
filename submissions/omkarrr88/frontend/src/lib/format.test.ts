@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatAge, formatBytes, formatCost, formatPages, uploadProblem } from './format'
+import {
+  documentKind,
+  formatAge,
+  formatBytes,
+  formatCost,
+  formatPages,
+  plural,
+  uploadProblem,
+} from './format'
 
 function file(name: string, size: number): File {
   const upload = new File(['x'], name)
@@ -39,6 +47,18 @@ describe('formatting', () => {
     expect(formatCost(0)).toBe('$0')
     expect(formatCost(0.00002)).toBe('< $0.0001')
     expect(formatCost(0.00052)).toBe('$0.0005')
+  })
+
+  it('names the kind of document from its file name', () => {
+    expect(documentKind('Guide.PDF')).toBe('pdf')
+    expect(documentKind('notes.md')).toBe('md')
+    expect(documentKind('notes.markdown')).toBe('md')
+    expect(documentKind('log.txt')).toBe('txt')
+  })
+
+  it('counts with the right plural', () => {
+    expect(plural(1, 'page')).toBe('1 page')
+    expect(plural(1200, 'passage')).toBe('1,200 passages')
   })
 
   it('formats ages relative to now', () => {
