@@ -95,4 +95,26 @@ describe('UploadZone', () => {
     ])
     await waitFor(() => expect(screen.getByRole('status')).toBeEmptyDOMElement())
   })
+
+  it('drops the files still waiting when it goes away, as on logging out', async () => {
+    const releases: (() => void)[] = []
+    const fetchMock = vi.fn<typeof fetch>(async () => {
+      await new Promise<void>((resolve) => releases.push(resolve))
+      return ok(makeDocument({ status: 'queued' }), 202)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const onUploaded = vi.fn<(document: DocumentItem) => void>()
+    const { container, unmount } = render(<UploadZone onUploaded={onUploaded} />)
+
+    fireEvent.drop(dropzone(container), {
+      dataTransfer: { files: [markdown('first.md'), markdown('second.md')] },
+    })
+    await waitFor(() => expect(releases).toHaveLength(1))
+    unmount()
+    releases[0]?.() // the file already on its way still arrives
+
+    await waitFor(() => expect(onUploaded).toHaveBeenCalledTimes(1))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(fetchMock).toHaveBeenCalledTimes(1) // the waiting one is never sent
+  })
 })
