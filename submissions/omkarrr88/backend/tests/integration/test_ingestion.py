@@ -14,11 +14,12 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import Settings
-from app.db.models import Chunk, Document, DocumentBlob, IngestionJob
+from app.db.models import Chunk, Document, DocumentBlob, IngestionJob, RateLimitCounter
 from app.ingestion.pipeline import prepare_document
 from app.logging_config import JsonFormatter
 from app.providers.errors import ProviderError
 from app.providers.fakes import FakeEmbedder
+from app.ratelimit.budget import KEY
 from app.worker.heartbeat import write_heartbeat
 from app.worker.jobs import backoff_seconds, process_next_job
 from app.worker.queue import claim_next_job, complete_job, requeue_stale_jobs
@@ -214,6 +215,92 @@ def test_a_document_over_the_passage_limit_fails_before_embedding(
         r"too long: it splits into \d+ passages, and the limit is 2\.", document.error or ""
     )
     assert embedder.calls == 0  # refused before anything was sent, so no quota was spent
+
+
+def _paragraphs(topic: str, count: int) -> bytes:
+    # Each paragraph is shorter than 100 characters and two are longer, so each is one passage.
+    return "\n\n".join(
+        f"The {topic} policy, part {i}, covers hotels, meals and taxis." for i in range(count)
+    ).encode()
+
+
+def _document_named(db: sessionmaker[Session], filename: str) -> Document:
+    with db() as session:
+        return session.scalars(select(Document).where(Document.filename == filename)).one()
+
+
+def test_documents_share_a_daily_passage_budget(
+    client: TestClient, db: sessionmaker[Session]
+) -> None:
+    settings = make_test_settings(
+        global_passages_per_day=5,
+        max_chunks_per_document=5,
+        chunk_size_chars=100,
+        chunk_overlap_chars=0,
+    )
+    token = signup(client)
+    upload(client, token, "first.txt", _paragraphs("travel", 3))
+    run_job(db, settings)
+    assert _document_named(db, "first.txt").chunk_count == 3
+
+    upload(client, token, "second.txt", _paragraphs("expense", 3))
+    embedder = CountingEmbedder()
+    run_job(db, settings, embedder)
+
+    second = _document_named(db, "second.txt")
+    assert second.status == "failed"
+    assert re.match(
+        r"This document splits into 3 passages, but the demo's budget for processing documents "
+        r"has room for only 2 more right now\. Delete it and upload it again in 2[34] hours, or "
+        r"upload a shorter document\.$",
+        second.error or "",
+    )
+    assert embedder.calls == 0  # refused before anything was sent, so no quota was spent
+
+    upload(client, token, "third.txt", _paragraphs("meals", 1))
+    run_job(db, settings)
+    assert _document_named(db, "third.txt").status == "ready"  # the refused 3 were not counted
+
+
+def test_a_used_up_passage_budget_says_so(client: TestClient, db: sessionmaker[Session]) -> None:
+    settings = make_test_settings(
+        global_passages_per_day=1,
+        max_chunks_per_document=1,
+        chunk_size_chars=100,
+        chunk_overlap_chars=0,
+    )
+    token = signup(client)
+    upload(client, token, "first.txt", _paragraphs("travel", 1))
+    upload(client, token, "second.txt", _paragraphs("expense", 1))
+    run_job(db, settings)
+    run_job(db, settings)
+
+    assert _document_named(db, "first.txt").status == "ready"
+    second = _document_named(db, "second.txt")
+    assert second.status == "failed"
+    assert re.match(
+        r"The demo's budget for processing documents is used up for now\. Delete this document "
+        r"and upload it again in 2[34] hours\.$",
+        second.error or "",
+    )
+
+
+def test_a_markdown_file_with_only_headings_fails_with_a_reason(
+    client: TestClient, db: sessionmaker[Session]
+) -> None:
+    upload(client, signup(client), "headings.md", b"# Travel\n\n## Hotels\n")
+    run_job(db, make_test_settings())
+
+    document = _document(db)
+    assert (document.status, document.error) == (
+        "failed",
+        "The file has no text to search, only headings.",
+    )
+    assert _job(db).status == "failed"  # at once, not after retries
+    with db() as session:
+        assert (
+            session.scalars(select(RateLimitCounter).where(RateLimitCounter.key == KEY)).all() == []
+        )
 
 
 def test_a_job_is_claimed_only_once(client: TestClient, db: sessionmaker[Session]) -> None:

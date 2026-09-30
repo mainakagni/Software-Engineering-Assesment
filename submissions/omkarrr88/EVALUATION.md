@@ -110,11 +110,17 @@ identical runs differ.
 | Retrieval hit rate | 97% | 97% | **100%** | **100%** |
 | Retrieval MRR | 0.948 | 0.948 | 0.952 | 0.952 |
 | Answers citing the evidence passage | 97% | 93% | 100% | 97% |
-| Prompt tokens per question | 965 | 1,626 | 2,474 | 2,474 |
+| Prompt tokens per model call | 965 | 1,626 | 2,474 | 2,474 |
 | Tokens per question (with the reply) | 1,032 | 1,689 | 2,519 | 2,519 |
 | Generation time, median | 1.63 s | 1.46 s | 1.47 s | 2.40 s |
 | Latency mean / median / p95 | 7.2 / 2.3 / 18.1 s | 2.1 / 2.1 / 2.5 s | 4.9 / 2.1 / 9.0 s | 3.7 / 3.0 / 7.6 s |
 | Provider retries | 3 | 0 | 3 | 0 |
+
+Prompt tokens are averaged over the 41 questions that reached the model: in every run, the similarity
+floor refused the injection probe t42 first. Tokens per question are averaged over all 42. The two
+10-passage runs used exactly the same number of tokens in total, 105,780, although the replies to 24
+of the 42 questions differ in token count. That is a coincidence; the per-question results in
+`backend/evaluation/results/` show it.
 
 **What changed with k:**
 
@@ -219,6 +225,10 @@ Several defences work together here:
   limited, not from DocuMind's own work. The evaluation waits out rate limits (up to 4 retries). The API
   is stricter: each model call times out after 20 s and is retried at most twice, so a user gets an
   answer or a clear "the language model is not responding" error instead of a long wait.
+- **The evaluation itself.** I wrote the questions, the expected facts and the system, so the set may
+  lean towards what the system does well. With 29 answerable questions, one question moves a score by
+  3.4 points, so a difference of one question between settings is within noise. Each setting ran once,
+  apart from the repeated 10-passage run.
 
 ## What I would try next
 

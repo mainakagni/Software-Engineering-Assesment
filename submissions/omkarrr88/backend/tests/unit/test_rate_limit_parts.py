@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.ratelimit.deps import _duration, client_ip
-from app.ratelimit.limiter import window_start
+from app.ratelimit.deps import client_ip
+from app.ratelimit.limiter import describe_wait, window_start
 from tests.conftest import make_test_settings
 
 
@@ -52,4 +52,4 @@ def test_behind_a_proxy_the_right_most_untrusted_entry_is_used(
      (3599, "60 minutes"), (7200, "2 hours"), (86_399, "24 hours")],
 )  # fmt: skip
 def test_waits_are_worded_in_a_sensible_unit(seconds: int, text: str) -> None:
-    assert _duration(seconds) == text
+    assert describe_wait(seconds) == text

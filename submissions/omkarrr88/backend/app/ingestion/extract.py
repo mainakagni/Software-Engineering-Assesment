@@ -17,7 +17,11 @@ _BLANK_LINES = re.compile(r"\n{3,}")
 
 
 class ExtractionError(Exception):
-    """The file cannot be turned into text. The message is shown to the user."""
+    """The document cannot be processed, and trying again right away will not help.
+
+    Raised for files that cannot be turned into text, and by the pipeline for documents that have no
+    passages, are too long, or do not fit the passage budget. The message is shown to the user.
+    """
 
     def __init__(self, message: str) -> None:
         super().__init__(message)

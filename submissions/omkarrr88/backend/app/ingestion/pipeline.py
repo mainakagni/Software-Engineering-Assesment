@@ -7,6 +7,7 @@ job done, after checking that the job is still its own.
 
 import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.orm import Session, sessionmaker
@@ -18,6 +19,8 @@ from app.ingestion.chunking import Chunk as TextChunk
 from app.ingestion.chunking import chunk_document, embedding_text
 from app.ingestion.extract import ExtractedText, ExtractionError, extract_pdf, extract_plain
 from app.providers.embeddings import Embedder
+from app.ratelimit.budget import spend_passages
+from app.ratelimit.limiter import describe_wait
 
 
 @dataclass(frozen=True)
@@ -57,6 +60,9 @@ def prepare_document(
         size=settings.chunk_size_chars,
         overlap=settings.chunk_overlap_chars,
     )
+    if not chunks:
+        # Only a Markdown file with nothing but headings gets here; other empty files fail earlier.
+        raise ExtractionError("The file has no text to search, only headings.")
     limit = settings.max_chunks_per_document
     if len(chunks) > limit:
         # Checked before anything is embedded, so a document that is too long spends no quota.
@@ -64,6 +70,7 @@ def prepare_document(
             f"The document is too long: it splits into {len(chunks):,} passages, and the limit "
             f"is {limit:,}. Upload a shorter document or a part of it."
         )
+    _spend_budget(session_factory, len(chunks), settings)
     vectors = embedder.embed_documents([embedding_text(c) for c in chunks], title=filename)
     return PreparedDocument(
         document_id=document_id,
@@ -119,6 +126,33 @@ def store_prepared(session: Session, prepared: PreparedDocument) -> bool:
     # The original bytes are not needed any more; the free database is small.
     session.execute(delete(DocumentBlob).where(DocumentBlob.document_id == prepared.document_id))
     return True
+
+
+def _spend_budget(
+    session_factory: sessionmaker[Session], passages: int, settings: Settings
+) -> None:
+    """Counts the passages against the shared daily budget before any of them is embedded.
+
+    A job that is retried counts its passages again. That errs on the safe side: the attempt that
+    failed may have used some of the quota too.
+    """
+    with session_factory.begin() as session:
+        decision = spend_passages(
+            session, passages, budget=settings.global_passages_per_day, now=datetime.now(UTC)
+        )
+    if decision.allowed:
+        return
+    wait = describe_wait(decision.retry_after_seconds)
+    if decision.left == 0:
+        raise ExtractionError(
+            "The demo's budget for processing documents is used up for now. "
+            f"Delete this document and upload it again in {wait}."
+        )
+    raise ExtractionError(
+        f"This document splits into {passages:,} passages, but the demo's budget for processing "
+        f"documents has room for only {decision.left:,} more right now. Delete it and upload it "
+        f"again in {wait}, or upload a shorter document."
+    )
 
 
 def _extract(content_type: str, data: bytes, settings: Settings) -> ExtractedText:

@@ -35,7 +35,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
 
-    app = FastAPI(title="DocuMind API", version="0.1.0", description=API_DESCRIPTION)
+    app = FastAPI(title="DocuMind API", version="1.0.0", description=API_DESCRIPTION)
     app.state.settings = settings
     app.state.session_factory = make_session_factory(settings)
     app.state.embedder = build_embedder(settings)

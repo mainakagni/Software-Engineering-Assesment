@@ -77,3 +77,16 @@ def test_the_similarity_floor_defaults_to_the_embedding_models_own() -> None:
 def test_one_document_uses_at_most_a_third_of_the_free_embedding_quota() -> None:
     # Each passage is one embedding request, and Gemini's free tier allows 1,000 a day in all.
     assert make_test_settings().max_chunks_per_document * 3 <= 1000
+
+
+def test_documents_and_questions_fit_the_free_embedding_quota_together() -> None:
+    # One request per passage and one per new question, 1,000 a day in all. The question cap counts
+    # UTC days while Gemini's day starts at midnight Pacific time, so two of them can fall inside
+    # one of Gemini's days.
+    settings = make_test_settings()
+    assert settings.global_passages_per_day + 2 * settings.global_questions_per_day <= 1000
+
+
+def test_the_longest_allowed_document_must_fit_the_passage_budget() -> None:
+    with pytest.raises(ValidationError, match="MAX_CHUNKS_PER_DOCUMENT"):
+        make_test_settings(max_chunks_per_document=301, global_passages_per_day=300)
