@@ -16,8 +16,9 @@
   height: var(--header-height);
   padding: 0 1rem;
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 85%, transparent);
-  backdrop-filter: saturate(1.5) blur(12px);
+  /* Mostly opaque: large text scrolling underneath should blur away, not show through. */
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: saturate(1.5) blur(16px);
 }
 
 @media (min-width: 640px) {
