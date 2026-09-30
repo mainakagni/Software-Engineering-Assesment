@@ -1,5 +1,6 @@
 """Vector search over the user's own chunks."""
 
+import re
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -8,6 +9,8 @@ from sqlalchemy import and_, select, text
 from sqlalchemy.orm import Session
 
 from app.db.models import Chunk, Document
+
+ITERATIVE_SCAN_SINCE = (0, 8)  # the pgvector release that added hnsw.iterative_scan
 
 
 @dataclass(frozen=True)
@@ -31,9 +34,7 @@ def search_chunks(
     document_ids: Sequence[uuid.UUID] | None = None,
 ) -> list[RetrievedChunk]:
     """The `k` chunks closest to the query, from the owner's ready documents only."""
-    # With a selective filter (one user, a few documents) a plain HNSW scan can return fewer than k
-    # rows; iterative scan keeps searching the index until it has enough (pgvector 0.8+).
-    session.execute(text("SET LOCAL hnsw.iterative_scan = relaxed_order"))
+    _widen_index_search(session)
     distance = Chunk.embedding.cosine_distance(list(query_vector)).label("distance")
     statement = (
         select(
@@ -69,3 +70,26 @@ def search_chunks(
     ]
     # relaxed_order may return rows slightly out of order
     return sorted(chunks, key=lambda chunk: chunk.similarity, reverse=True)
+
+
+def supports_iterative_scan(pgvector_version: str | None) -> bool:
+    if pgvector_version is None:
+        return False
+    numbers = tuple(int(part) for part in re.findall(r"\d+", pgvector_version)[:2])
+    return numbers >= ITERATIVE_SCAN_SINCE
+
+
+def _pgvector_version(session: Session) -> str | None:
+    return session.execute(
+        text("SELECT extversion FROM pg_extension WHERE extname = 'vector'")
+    ).scalar_one_or_none()
+
+
+def _widen_index_search(session: Session) -> None:
+    """With a selective filter (one user, a few documents) a plain HNSW scan can return fewer than
+    k rows. pgvector 0.8+ keeps scanning the index until it has enough; older versions, which some
+    hosts still run, get the longest candidate list pgvector allows instead."""
+    if supports_iterative_scan(_pgvector_version(session)):
+        session.execute(text("SET LOCAL hnsw.iterative_scan = relaxed_order"))
+    else:
+        session.execute(text("SET LOCAL hnsw.ef_search = 1000"))
