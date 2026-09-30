@@ -65,3 +65,10 @@ def test_cors_origins_are_split_and_trimmed() -> None:
 
 def test_upload_limit_in_bytes() -> None:
     assert make_test_settings(max_upload_mb=2).max_upload_bytes == 2 * 1024 * 1024
+
+
+def test_the_similarity_floor_defaults_to_the_embedding_models_own() -> None:
+    assert make_test_settings(embedding_provider="fake").min_similarity == 0.35
+    gemini = make_test_settings(embedding_provider="gemini", gemini_api_key="k")
+    assert gemini.min_similarity == 0.60
+    assert make_test_settings(retrieval_min_similarity=0.5).min_similarity == 0.5

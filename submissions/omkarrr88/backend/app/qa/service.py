@@ -112,7 +112,7 @@ def answer_question(
     embedding_tokens = estimate_tokens(question)
 
     # Gate 1: nothing close enough to the question, so the model is not asked at all.
-    if not chunks or chunks[0].similarity < settings.retrieval_min_similarity:
+    if not chunks or chunks[0].similarity < settings.min_similarity:
         usage = _usage(
             None, embedding_tokens, retrieval_ms, generation_ms=0, started=started,
             settings=settings,

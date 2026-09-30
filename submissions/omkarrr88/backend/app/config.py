@@ -15,6 +15,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # shorter HS256 keys are considered weak.
 DEV_JWT_SECRET = "dev-only-secret-never-use-in-production"  # noqa: S105
 VECTOR_DIM = 768  # size of the chunks.embedding column in the database
+# Default floor of the first refusal gate, per embedding model, since each one spreads similarities
+# differently. With gemini-embedding-001, clearly off-topic questions score about 0.47 against the
+# evaluation corpus and the answerable dev questions 0.72 or more (see EVALUATION.md). The fake
+# embedder's bag-of-words vectors score much lower.
+DEFAULT_MIN_SIMILARITY = {"gemini": 0.60, "fake": 0.35}
 
 
 class DatabaseSettings(BaseSettings):
@@ -65,7 +70,7 @@ class Settings(DatabaseSettings):
     worker_provider_max_retry_wait_seconds: float = 65
 
     retrieval_top_k: int = 6
-    retrieval_min_similarity: float = 0.35
+    retrieval_min_similarity: float | None = None  # unset: the embedding model's default
     chunk_size_chars: int = 1400
     chunk_overlap_chars: int = 200
 
@@ -126,6 +131,13 @@ class Settings(DatabaseSettings):
                 "(set both to fake to run without a key)"
             )
         return self
+
+    @property
+    def min_similarity(self) -> float:
+        """The first refusal gate: a question whose best passage is less similar is not answered."""
+        if self.retrieval_min_similarity is not None:
+            return self.retrieval_min_similarity
+        return DEFAULT_MIN_SIMILARITY[self.embedding_provider]
 
     @property
     def cors_origin_list(self) -> list[str]:
