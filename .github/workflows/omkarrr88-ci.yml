@@ -58,7 +58,7 @@ jobs:
           uv run ruff check .
           uv run ruff format --check .
       - name: Type-check
-        run: uv run mypy app tests
+        run: uv run mypy app tests evaluation
       - name: Test
         run: uv run pytest --cov=app --cov-report=term --cov-fail-under=90
 
