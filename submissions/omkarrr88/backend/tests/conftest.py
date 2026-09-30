@@ -6,7 +6,8 @@ migration and every table is emptied after each test.
 """
 
 import os
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 
@@ -90,12 +91,25 @@ def db(session_factory: sessionmaker[Session]) -> Iterator[sessionmaker[Session]
         session.execute(text(f"TRUNCATE {tables} CASCADE"))
 
 
+ClientFactory = Callable[..., TestClient]
+
+
 @pytest.fixture
-def client(settings: Settings, db: sessionmaker[Session]) -> Iterator[TestClient]:
-    app = create_app(settings)
-    app.state.session_factory = db
-    with TestClient(app) as test_client:
-        yield test_client
+def client_factory(db: sessionmaker[Session]) -> Iterator[ClientFactory]:
+    """Makes API clients with setting overrides, e.g. `client_factory(retrieval_top_k=3)`."""
+    with ExitStack() as stack:
+
+        def make(**overrides: Any) -> TestClient:
+            app = create_app(make_test_settings(**overrides))
+            app.state.session_factory = db
+            return stack.enter_context(TestClient(app))
+
+        yield make
+
+
+@pytest.fixture
+def client(client_factory: ClientFactory) -> TestClient:
+    return client_factory()
 
 
 def signup(

@@ -7,6 +7,8 @@ from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.providers.embeddings import Embedder
+from app.providers.llm import LLMClient
 
 
 def get_app_settings(request: Request) -> Settings:
@@ -23,5 +25,15 @@ def get_db(request: Request) -> Iterator[Session]:
         session.close()
 
 
+def get_embedder(request: Request) -> Embedder:
+    return request.app.state.embedder
+
+
+def get_llm(request: Request) -> LLMClient:
+    return request.app.state.llm
+
+
 SettingsDep = Annotated[Settings, Depends(get_app_settings)]
 DbSession = Annotated[Session, Depends(get_db)]
+EmbedderDep = Annotated[Embedder, Depends(get_embedder)]
+LLMDep = Annotated[LLMClient, Depends(get_llm)]
