@@ -41,7 +41,8 @@ def mount_web_ui(app: FastAPI, static_dir: Path) -> bool:
     if (root / "assets").is_dir():
         app.mount("/assets", HashedAssets(directory=root / "assets"), name="assets")
 
-    @app.get("/{path:path}", include_in_schema=False)
+    # HEAD too: uptime monitors often check a page with HEAD, and a 405 reads as "down".
+    @app.api_route("/{path:path}", methods=["GET", "HEAD"], include_in_schema=False)
     def web_ui(path: str) -> FileResponse:
         if path.split("/", 1)[0] in API_PATHS:
             raise StarletteHTTPException(status_code=404)

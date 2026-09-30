@@ -37,6 +37,13 @@ def test_index_and_client_side_routes_get_the_page(client: TestClient) -> None:
         assert "script-src 'self'" in response.headers["content-security-policy"]
 
 
+def test_head_requests_get_the_headers_only(client: TestClient) -> None:
+    response = client.head("/")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert response.content == b""
+
+
 def test_hashed_assets_are_cached_for_long(client: TestClient) -> None:
     response = client.get("/assets/index-abc123.js")
     assert response.status_code == 200
