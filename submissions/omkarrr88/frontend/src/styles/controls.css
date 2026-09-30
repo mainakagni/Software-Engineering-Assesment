@@ -51,6 +51,21 @@
   background: var(--ink-hover);
 }
 
+/* A disabled primary button turns neutral rather than fading, so it reads as unavailable. */
+.button.primary:disabled {
+  border-color: var(--surface-3);
+  background: var(--surface-3);
+  color: var(--muted);
+  opacity: 1;
+}
+
+.button.primary.busy:disabled {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--on-ink);
+  opacity: 0.85;
+}
+
 .button.ghost {
   border-color: transparent;
   background: transparent;
