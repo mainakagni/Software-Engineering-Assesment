@@ -6,10 +6,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth.routes import router as auth_router
 from app.config import Settings, get_settings
 from app.db.session import make_session_factory
+from app.documents.routes import router as documents_router
 from app.errors import register_error_handlers
 from app.health.routes import router as health_router
 from app.logging_config import configure_logging
-from app.middleware import REQUEST_ID_HEADER, RequestContextMiddleware, SecurityHeadersMiddleware
+from app.middleware import (
+    REQUEST_ID_HEADER,
+    RequestContextMiddleware,
+    SecurityHeadersMiddleware,
+    UploadSizeLimitMiddleware,
+)
 
 API_DESCRIPTION = """
 Upload documents, then ask questions about them. Answers are grounded in your documents and cite
@@ -29,6 +35,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.session_factory = make_session_factory(settings)
 
     # Middleware added last runs first: the request ID is set before anything else happens.
+    app.add_middleware(
+        UploadSizeLimitMiddleware, path="/api/documents", max_file_bytes=settings.max_upload_bytes
+    )
     app.add_middleware(SecurityHeadersMiddleware, hsts=settings.app_env == "production")
     if settings.cors_origin_list:
         app.add_middleware(
@@ -43,4 +52,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_error_handlers(app)
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(documents_router)
     return app

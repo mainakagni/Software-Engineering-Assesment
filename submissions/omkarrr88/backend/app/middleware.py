@@ -6,8 +6,10 @@ import time
 import uuid
 
 from starlette.datastructures import Headers, MutableHeaders
+from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.envelope import error_payload
 from app.logging_config import request_id_var
 
 logger = logging.getLogger("app.http")
@@ -106,3 +108,41 @@ class SecurityHeadersMiddleware:
             await send(message)
 
         await self.app(scope, receive, send_with_headers)
+
+
+class UploadSizeLimitMiddleware:
+    """Rejects an oversized upload from its Content-Length header, before the body is read.
+
+    Multipart parsing spools the whole body to disk before the route runs, so checking the size in
+    the route alone would still accept and store a huge body first. Uploads must declare their
+    length (browsers, curl and HTTP libraries always do), and the ASGI server never reads past it.
+    """
+
+    # Room for the multipart boundaries and part headers around the file itself.
+    MULTIPART_OVERHEAD_BYTES = 64 * 1024
+
+    def __init__(self, app: ASGIApp, *, path: str, max_file_bytes: int) -> None:
+        self.app = app
+        self.path = path
+        self.max_file_bytes = max_file_bytes
+        self.max_body_bytes = max_file_bytes + self.MULTIPART_OVERHEAD_BYTES
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope["method"] == "POST" and scope["path"] == self.path:
+            length = Headers(scope=scope).get("content-length")
+            rejection: tuple[int, str, str] | None = None
+            if length is None or not length.isdigit():
+                rejection = (
+                    411,
+                    "length_required",
+                    "The upload must have a Content-Length header.",
+                )
+            elif int(length) > self.max_body_bytes:
+                size_mb = self.max_file_bytes // (1024 * 1024)
+                rejection = (413, "payload_too_large", f"The file is larger than {size_mb} MB.")
+            if rejection:
+                status, code, message = rejection
+                payload = error_payload(code, message, request_id_var.get())
+                await JSONResponse(payload, status_code=status)(scope, receive, send)
+                return
+        await self.app(scope, receive, send)

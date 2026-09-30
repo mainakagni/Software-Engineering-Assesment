@@ -42,6 +42,7 @@ _ERROR_DESCRIPTIONS = {
     401: "Missing, invalid or expired access token",
     404: "Not found, or it belongs to another user",
     409: "Conflicts with the current state",
+    411: "The upload has no Content-Length header",
     413: "File too large",
     415: "Unsupported file type",
     422: "Invalid input; `error.details` lists the fields",
