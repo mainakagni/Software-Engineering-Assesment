@@ -16,6 +16,8 @@ from app.middleware import (
     SecurityHeadersMiddleware,
     UploadSizeLimitMiddleware,
 )
+from app.providers.factory import build_embedder, build_llm
+from app.qa.routes import router as questions_router
 
 API_DESCRIPTION = """
 Upload documents, then ask questions about them. Answers are grounded in your documents and cite
@@ -33,6 +35,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="DocuMind API", version="0.1.0", description=API_DESCRIPTION)
     app.state.settings = settings
     app.state.session_factory = make_session_factory(settings)
+    app.state.embedder = build_embedder(settings)
+    app.state.llm = build_llm(settings)
 
     # Middleware added last runs first: the request ID is set before anything else happens.
     app.add_middleware(
@@ -53,4 +57,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(documents_router)
+    app.include_router(questions_router)
     return app

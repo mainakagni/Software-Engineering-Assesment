@@ -104,10 +104,19 @@ async def _handle_app_error(_: Request, exc: Exception) -> JSONResponse:
 async def _handle_validation_error(_: Request, exc: Exception) -> JSONResponse:
     error = cast(RequestValidationError, exc)
     details = [
-        {"field": ".".join(str(part) for part in item["loc"][1:]), "message": item["msg"]}
+        {"field": ".".join(str(part) for part in item["loc"][1:]), "message": _field_message(item)}
         for item in error.errors()
     ]
     return _json_error(422, "validation_error", "Some fields are missing or invalid.", details)
+
+
+def _field_message(item: Mapping[str, Any]) -> str:
+    # Our validators raise ValueError with a message written for users; pydantic would prefix it
+    # with "Value error, ".
+    context = item.get("ctx") or {}
+    if item["type"] == "value_error" and "error" in context:
+        return str(context["error"])
+    return str(item["msg"])
 
 
 async def _handle_http_error(_: Request, exc: Exception) -> JSONResponse:
