@@ -131,12 +131,8 @@
   text-underline-offset: 3px;
 }
 
-.link-button:hover:not(:disabled) {
+.link-button:hover {
   color: var(--accent-hover);
-}
-
-.link-button:disabled {
-  color: var(--muted);
 }
 
 .field {
