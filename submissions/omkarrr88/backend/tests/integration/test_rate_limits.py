@@ -3,6 +3,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
 from sqlalchemy import select
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.models import RateLimitCounter
 from app.ratelimit.limiter import delete_old_windows, hit
+from app.worker import maintenance
 from app.worker.maintenance import run_maintenance
 from tests.conftest import ClientFactory, make_test_settings, signup
 
@@ -52,6 +54,21 @@ def test_maintenance_deletes_counters_of_finished_windows(db: sessionmaker[Sessi
     run_maintenance(db, settings=make_test_settings())
     with db() as session:
         assert session.scalars(select(RateLimitCounter.key)).all() == ["yesterday"]
+
+
+def test_a_failing_maintenance_step_does_not_stop_the_others(
+    db: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def broken(*_: object) -> int:
+        raise RuntimeError("database hiccup")
+
+    monkeypatch.setattr(maintenance, "STEPS", (broken, maintenance.delete_finished_windows))
+    with db.begin() as session:
+        hit(session, "last-week", limit=5, window_seconds=60, now=datetime.now(UTC) - timedelta(7))
+    maintenance.run_maintenance(db, settings=make_test_settings())
+    with db() as session:
+        assert session.scalars(select(RateLimitCounter.key)).all() == []
+    assert "worker.maintenance_failed" in caplog.messages
 
 
 # --- question limits -----------------------------------------------------------------------------
