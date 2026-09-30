@@ -18,12 +18,15 @@
   }
 }
 
-/* Questions, answers and passages can hold long URLs or file names, which must not widen the page. */
+/* Questions, answers, passages and section names can hold long URLs or identifiers, which must not
+   widen the page. */
 .answer-question,
 .answer-text,
 .not-found-title,
 .citation blockquote,
-.passage {
+.citation-location,
+.passage,
+.metric {
   overflow-wrap: anywhere;
 }
 

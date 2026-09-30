@@ -3,6 +3,7 @@
 @media (pointer: coarse) {
   .button,
   .button.small,
+  .button.block,
   .input,
   .segmented button {
     min-height: 44px;
