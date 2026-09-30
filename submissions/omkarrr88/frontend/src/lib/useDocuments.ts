@@ -25,7 +25,13 @@ export function useDocuments() {
       const request = requested.current
       return api.listDocuments().then(
         (loaded) => {
-          if (!active || request <= shown.current || request <= changedAt.current) return
+          if (!active) return
+          if (request <= changedAt.current) {
+            // Overtaken by an upload or delete here. If no newer list is on its way, ask again.
+            if (request === requested.current) void load()
+            return
+          }
+          if (request <= shown.current) return
           shown.current = request
           setDocuments(loaded)
           setError(null)

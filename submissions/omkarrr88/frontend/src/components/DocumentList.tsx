@@ -1,3 +1,5 @@
+import { useRef } from 'react'
+
 import type { DocumentItem } from '../api/types'
 import { Callout } from './Callout'
 import { DocumentRow } from './DocumentRow'
@@ -5,10 +7,25 @@ import { DocumentRow } from './DocumentRow'
 interface Props {
   documents: DocumentItem[] | null
   error: string | null
-  onDeleted: (document: DocumentItem) => void
+  /** `focusHeading`: focus should move to the heading above the list, as no document is left for it. */
+  onDeleted: (document: DocumentItem, focusHeading: boolean) => void
 }
 
 export function DocumentList({ documents, error, onDeleted }: Props) {
+  const list = useRef<HTMLUListElement>(null)
+
+  // The deleted row takes the focus with it. The next document's delete button (or the previous
+  // one's, at the end) takes it over, so the user stays where they were in the list.
+  function deleted(document: DocumentItem, hadFocus: boolean) {
+    const all = documents ?? []
+    const index = all.findIndex((other) => other.id === document.id)
+    const neighbour = all[index + 1] ?? all[index - 1]
+    const buttons = list.current?.querySelectorAll<HTMLButtonElement>('button[data-delete]') ?? []
+    const target = Array.from(buttons).find((button) => button.dataset.delete === neighbour?.id)
+    onDeleted(document, hadFocus && target === undefined)
+    if (hadFocus) target?.focus()
+  }
+
   return (
     <>
       {error && (
@@ -24,9 +41,9 @@ export function DocumentList({ documents, error, onDeleted }: Props) {
         </div>
       )}
       {documents && documents.length > 0 && (
-        <ul className="documents">
+        <ul className="documents" ref={list}>
           {documents.map((document) => (
-            <DocumentRow key={document.id} document={document} onDeleted={onDeleted} />
+            <DocumentRow key={document.id} document={document} onDeleted={deleted} />
           ))}
         </ul>
       )}

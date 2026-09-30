@@ -24,7 +24,8 @@ const KIND_LABELS: Record<DocumentKind, string> = { pdf: 'PDF', md: 'MD', txt: '
 
 interface Props {
   document: DocumentItem
-  onDeleted: (document: DocumentItem) => void
+  /** `hadFocus`: keyboard focus was still in the confirmation, so the list may move it. */
+  onDeleted: (document: DocumentItem, hadFocus: boolean) => void
 }
 
 export function DocumentRow({ document, onDeleted }: Props) {
@@ -33,11 +34,12 @@ export function DocumentRow({ document, onDeleted }: Props) {
   const trigger = useRef<HTMLButtonElement>(null)
   const kind = documentKind(document.filename)
 
-  // The confirmation closed without deleting: cancelled, or the delete failed.
-  function closed(failure: string | null) {
+  // The confirmation closed without deleting: cancelled, or the delete failed. Focus goes back to
+  // the delete button, unless the user has moved on meanwhile.
+  function closed(failure: string | null, hadFocus: boolean) {
     setConfirming(false)
     setError(failure)
-    trigger.current?.focus()
+    if (hadFocus) trigger.current?.focus()
   }
 
   return (
@@ -65,6 +67,7 @@ export function DocumentRow({ document, onDeleted }: Props) {
         className="icon-button danger delete"
         aria-label={`Delete ${document.filename}`}
         aria-expanded={confirming}
+        data-delete={document.id}
         onClick={() => setConfirming(true)}
       >
         <Trash2 size={16} />
@@ -84,34 +87,52 @@ export function DocumentRow({ document, onDeleted }: Props) {
 
 interface ConfirmDeleteProps {
   document: DocumentItem
-  onDeleted: (document: DocumentItem) => void
-  onClosed: (failure: string | null) => void
+  onDeleted: (document: DocumentItem, hadFocus: boolean) => void
+  onClosed: (failure: string | null, hadFocus: boolean) => void
 }
 
 function ConfirmDelete({ document, onDeleted, onClosed }: ConfirmDeleteProps) {
   const [deleting, setDeleting] = useState(false)
+  const group = useRef<HTMLDivElement>(null)
+
+  // A delete can take a while. If the user has started something else by the time it ends, focus
+  // must stay where they are; if it is still here, or was lost with a disabled button, it may move.
+  function hasFocus(): boolean {
+    const element = group.current
+    if (!element) return false
+    const active = element.ownerDocument.activeElement
+    return active === null || active === element.ownerDocument.body || element.contains(active)
+  }
 
   async function remove() {
     if (deleting) return
     setDeleting(true)
     try {
       await api.deleteDocument(document.id)
-      onDeleted(document)
+      onDeleted(document, hasFocus())
     } catch (caught) {
-      if (caught instanceof ApiError && caught.status === 404) onDeleted(document) // already gone
-      else onClosed(errorMessage(caught))
+      if (caught instanceof ApiError && caught.status === 404) {
+        onDeleted(document, hasFocus()) // already gone
+      } else {
+        onClosed(errorMessage(caught), hasFocus())
+      }
     }
   }
 
   return (
-    <div className="confirm" role="group" aria-label={`Delete ${document.filename}?`}>
+    <div
+      ref={group}
+      className="confirm"
+      role="group"
+      aria-label={`Delete ${document.filename}?`}
+    >
       <span>Delete this document?</span>
       <button
         type="button"
         className="button small"
         autoFocus
         disabled={deleting}
-        onClick={() => onClosed(null)}
+        onClick={() => onClosed(null, true)}
       >
         Cancel
       </button>

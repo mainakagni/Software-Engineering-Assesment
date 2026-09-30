@@ -7,9 +7,25 @@ import { failure, makeDocument } from '../test/fixtures'
 import { DocumentList } from './DocumentList'
 
 const GUIDE = makeDocument({ id: 'doc-1', filename: 'guide.pdf', page_count: 12, chunk_count: 40 })
+const NOTES = makeDocument({ id: 'doc-2', filename: 'notes.md' })
 
 function deletedSpy() {
-  return vi.fn<(document: DocumentItem) => void>()
+  return vi.fn<(document: DocumentItem, focusHeading: boolean) => void>()
+}
+
+/** A delete request that waits until the test answers it. */
+function pendingDelete(response: () => Response) {
+  const pending: { release?: () => void } = {}
+  vi.stubGlobal(
+    'fetch',
+    vi.fn<typeof fetch>(async () => {
+      await new Promise<void>((resolve) => {
+        pending.release = resolve
+      })
+      return response()
+    }),
+  )
+  return pending
 }
 
 async function confirmDelete() {
@@ -56,8 +72,55 @@ describe('DocumentList', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus()
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
-    await waitFor(() => expect(onDeleted).toHaveBeenCalledWith(GUIDE))
+    // The list is empty now, so the heading above it should take the focus.
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledWith(GUIDE, true))
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/documents/doc-1')
+  })
+
+  it('moves focus to the next document after a delete', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response(null, { status: 204 })))
+    const onDeleted = deletedSpy()
+    render(<DocumentList documents={[GUIDE, NOTES]} error={null} onDeleted={onDeleted} />)
+
+    await confirmDelete()
+
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledWith(GUIDE, false))
+    expect(screen.getByRole('button', { name: 'Delete notes.md' })).toHaveFocus()
+  })
+
+  it('leaves focus alone if the user moved on during a slow delete', async () => {
+    const pending = pendingDelete(() => new Response(null, { status: 204 }))
+    const onDeleted = deletedSpy()
+    render(
+      <>
+        <DocumentList documents={[GUIDE]} error={null} onDeleted={onDeleted} />
+        <input aria-label="Elsewhere" />
+      </>,
+    )
+
+    await confirmDelete()
+    await userEvent.click(screen.getByLabelText('Elsewhere'))
+    pending.release?.()
+
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledWith(GUIDE, false))
+    expect(screen.getByLabelText('Elsewhere')).toHaveFocus()
+  })
+
+  it('leaves focus alone if the user moved on before a delete failed', async () => {
+    const pending = pendingDelete(() => failure(503, 'unavailable', 'Please try again shortly.'))
+    render(
+      <>
+        <DocumentList documents={[GUIDE]} error={null} onDeleted={deletedSpy()} />
+        <input aria-label="Elsewhere" />
+      </>,
+    )
+
+    await confirmDelete()
+    await userEvent.click(screen.getByLabelText('Elsewhere'))
+    pending.release?.()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Please try again shortly.')
+    expect(screen.getByLabelText('Elsewhere')).toHaveFocus()
   })
 
   it('stays busy but focusable while deleting', async () => {
@@ -108,7 +171,7 @@ describe('DocumentList', () => {
 
     await confirmDelete()
 
-    await waitFor(() => expect(onDeleted).toHaveBeenCalledWith(GUIDE))
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledWith(GUIDE, true))
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 

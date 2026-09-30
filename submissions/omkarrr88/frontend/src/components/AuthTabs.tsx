@@ -30,6 +30,8 @@ export function AuthTabs({ mode, onChange, children }: Props) {
   const tabId = (tab: Mode) => `${baseId}-${tab}`
 
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    // Leave browser and system shortcuts alone, such as Alt+Left for Back.
+    if (event.altKey || event.ctrlKey || event.metaKey) return
     const target = KEY_TARGETS[event.key]
     if (!target) return
     event.preventDefault()

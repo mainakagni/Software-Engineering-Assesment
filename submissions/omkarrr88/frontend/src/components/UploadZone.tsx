@@ -1,5 +1,5 @@
 import { LoaderCircle, Upload } from 'lucide-react'
-import { useRef, useState, type ChangeEvent, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 
 import { api, errorMessage } from '../api/client'
 import type { DocumentItem } from '../api/types'
@@ -23,6 +23,15 @@ export function UploadZone({ onUploaded }: Props) {
   const [dragging, setDragging] = useState(false)
   const [progress, setProgress] = useState<Progress | null>(null)
   const [problems, setProblems] = useState<string[]>([])
+
+  // Logging out or an expired session closes the workspace. The files still waiting must not go
+  // up afterwards: each request uses whichever token is current, which may be someone else's.
+  useEffect(
+    () => () => {
+      queue.current = []
+    },
+    [],
+  )
 
   async function add(files: File[]) {
     queue.current = [...queue.current, ...files]

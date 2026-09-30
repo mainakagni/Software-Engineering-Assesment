@@ -22,11 +22,10 @@ export function Library({ documents, error, onUploaded, onDeleted }: Props) {
     setStatus(`${document.filename} was uploaded.`)
   }
 
-  // The deleted row takes the focus with it, so focus moves to the heading of the list.
-  function deleted(document: DocumentItem) {
+  function deleted(document: DocumentItem, focusHeading: boolean) {
     onDeleted(document.id)
     setStatus(`${document.filename} was deleted.`)
-    heading.current?.focus()
+    if (focusHeading) heading.current?.focus()
   }
 
   return (

@@ -32,6 +32,20 @@ describe('useDocuments', () => {
     expect(result.current.documents?.map((document) => document.id)).toEqual(['doc-2', 'doc-1'])
   })
 
+  it('asks again when the only list on its way was overtaken by a change', async () => {
+    const answers = stubLists()
+    const { result } = renderHook(() => useDocuments())
+    await waitFor(() => expect(answers).toHaveLength(1))
+    const ready = makeDocument({ id: 'doc-3', status: 'ready' })
+
+    act(() => result.current.added(ready)) // nothing is processing, so no poll is due
+    await act(async () => answers[0]?.(ok([]))) // requested before the change: not shown
+    await waitFor(() => expect(answers).toHaveLength(2))
+    await act(async () => answers[1]?.(ok([ready, makeDocument({ id: 'doc-4' })])))
+
+    expect(result.current.documents?.map((document) => document.id)).toEqual(['doc-3', 'doc-4'])
+  })
+
   it('keeps a delete that an older list does not know about yet', async () => {
     const answers = stubLists()
     const { result } = renderHook(() => useDocuments())

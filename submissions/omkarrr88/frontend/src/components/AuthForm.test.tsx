@@ -68,6 +68,15 @@ describe('AuthForm', () => {
     expect(busy).toHaveFocus()
   })
 
+  it('leaves browser shortcuts such as Alt+Left alone', async () => {
+    render(<AuthForm notice={null} onAuthenticated={vi.fn<(user: User) => void>()} />)
+
+    screen.getByRole('tab', { name: 'Log in' }).focus()
+    await userEvent.keyboard('{Alt>}{ArrowRight}{/Alt}')
+
+    expect(screen.getByRole('tab', { name: 'Log in' })).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('moves between the tabs with the arrow keys', async () => {
     render(<AuthForm notice={null} onAuthenticated={vi.fn<(user: User) => void>()} />)
 
