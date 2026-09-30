@@ -249,6 +249,11 @@ textarea::placeholder {
   font-weight: 600;
 }
 
+.section-title:focus-visible {
+  border-radius: 4px;
+  outline-offset: 4px;
+}
+
 .count {
   padding: 0 0.5rem;
   border: 1px solid var(--border);

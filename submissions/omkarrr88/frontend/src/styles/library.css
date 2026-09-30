@@ -189,7 +189,7 @@
   animation: rise 150ms var(--ease);
 }
 
-.confirm span {
+.confirm > span {
   flex-basis: 100%;
   margin-bottom: 0.1rem;
   color: var(--text-2);

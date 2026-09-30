@@ -1,3 +1,5 @@
+import { useRef, useState } from 'react'
+
 import type { DocumentItem } from '../api/types'
 import { MAX_DOCUMENTS } from '../lib/format'
 import { DocumentList } from './DocumentList'
@@ -12,11 +14,26 @@ interface Props {
 
 /** The sidebar: upload, and the user's documents with their processing status. */
 export function Library({ documents, error, onUploaded, onDeleted }: Props) {
+  const heading = useRef<HTMLHeadingElement>(null)
+  const [status, setStatus] = useState('')
+
+  function uploaded(document: DocumentItem) {
+    onUploaded(document)
+    setStatus(`${document.filename} was uploaded.`)
+  }
+
+  // The deleted row takes the focus with it, so focus moves to the heading of the list.
+  function deleted(document: DocumentItem) {
+    onDeleted(document.id)
+    setStatus(`${document.filename} was deleted.`)
+    heading.current?.focus()
+  }
+
   return (
     <section className="library" aria-labelledby="documents-title">
       <div className="library-inner">
         <div className="section-head">
-          <h2 id="documents-title" className="section-title">
+          <h2 id="documents-title" ref={heading} tabIndex={-1} className="section-title">
             Your documents
           </h2>
           {documents !== null && (
@@ -25,8 +42,11 @@ export function Library({ documents, error, onUploaded, onDeleted }: Props) {
             </span>
           )}
         </div>
-        <UploadZone onUploaded={onUploaded} />
-        <DocumentList documents={documents} error={error} onDeleted={onDeleted} />
+        <UploadZone onUploaded={uploaded} />
+        <DocumentList documents={documents} error={error} onDeleted={deleted} />
+        <p className="visually-hidden" role="status">
+          {status}
+        </p>
       </div>
     </section>
   )

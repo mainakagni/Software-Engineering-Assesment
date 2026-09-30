@@ -2,13 +2,19 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
+import type { DocumentItem } from '../api/types'
 import { failure, makeDocument } from '../test/fixtures'
 import { DocumentList } from './DocumentList'
 
 const GUIDE = makeDocument({ id: 'doc-1', filename: 'guide.pdf', page_count: 12, chunk_count: 40 })
 
-function noop() {
-  return vi.fn<(id: string) => void>()
+function deletedSpy() {
+  return vi.fn<(document: DocumentItem) => void>()
+}
+
+async function confirmDelete() {
+  await userEvent.click(screen.getByRole('button', { name: 'Delete guide.pdf' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 }
 
 describe('DocumentList', () => {
@@ -19,7 +25,7 @@ describe('DocumentList', () => {
       status: 'processing',
       chunk_count: null,
     })
-    render(<DocumentList documents={[GUIDE, notes]} error={null} onDeleted={noop()} />)
+    render(<DocumentList documents={[GUIDE, notes]} error={null} onDeleted={deletedSpy()} />)
 
     expect(screen.getByText('guide.pdf')).toBeInTheDocument()
     expect(screen.getByText('Ready')).toBeInTheDocument()
@@ -31,7 +37,7 @@ describe('DocumentList', () => {
 
   it('says why a document failed', () => {
     const broken = makeDocument({ status: 'failed', error: 'The PDF has no text layer.' })
-    render(<DocumentList documents={[broken]} error={null} onDeleted={noop()} />)
+    render(<DocumentList documents={[broken]} error={null} onDeleted={deletedSpy()} />)
 
     expect(screen.getByText('Failed')).toBeInTheDocument()
     expect(screen.getByText('The PDF has no text layer.')).toBeInTheDocument()
@@ -40,20 +46,34 @@ describe('DocumentList', () => {
   it('asks before deleting, then deletes', async () => {
     const fetchMock = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }))
     vi.stubGlobal('fetch', fetchMock)
-    const onDeleted = vi.fn<(id: string) => void>()
+    const onDeleted = deletedSpy()
     render(<DocumentList documents={[GUIDE]} error={null} onDeleted={onDeleted} />)
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete guide.pdf' }))
-    expect(screen.getByText('Delete this document?')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Delete guide.pdf?' })).toHaveTextContent(
+      'Delete this document?',
+    )
     expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus()
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
-    await waitFor(() => expect(onDeleted).toHaveBeenCalledWith('doc-1'))
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledWith(GUIDE))
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/documents/doc-1')
   })
 
+  it('stays busy but focusable while deleting', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(() => new Promise<Response>(() => {})))
+    render(<DocumentList documents={[GUIDE]} error={null} onDeleted={deletedSpy()} />)
+
+    await confirmDelete()
+
+    const deleting = screen.getByRole('button', { name: 'Deleting…' })
+    expect(deleting).toHaveAttribute('aria-disabled', 'true')
+    expect(deleting).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+  })
+
   it('returns focus to the delete button when cancelled', async () => {
-    render(<DocumentList documents={[GUIDE]} error={null} onDeleted={noop()} />)
+    render(<DocumentList documents={[GUIDE]} error={null} onDeleted={deletedSpy()} />)
     const trigger = screen.getByRole('button', { name: 'Delete guide.pdf' })
 
     await userEvent.click(trigger)
@@ -68,21 +88,43 @@ describe('DocumentList', () => {
       'fetch',
       vi.fn<typeof fetch>(async () => failure(503, 'unavailable', 'Please try again shortly.')),
     )
-    const onDeleted = vi.fn<(id: string) => void>()
+    const onDeleted = deletedSpy()
     render(<DocumentList documents={[GUIDE]} error={null} onDeleted={onDeleted} />)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Delete guide.pdf' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await confirmDelete()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Please try again shortly.')
+    expect(screen.getByRole('button', { name: 'Delete guide.pdf' })).toHaveFocus()
     expect(onDeleted).not.toHaveBeenCalled()
   })
 
-  it('has an empty state and a loading state', () => {
-    const { rerender } = render(<DocumentList documents={[]} error={null} onDeleted={noop()} />)
+  it('treats a document that is already gone as deleted', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () => failure(404, 'not_found', 'Document not found.')),
+    )
+    const onDeleted = deletedSpy()
+    render(<DocumentList documents={[GUIDE]} error={null} onDeleted={onDeleted} />)
+
+    await confirmDelete()
+
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledWith(GUIDE))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('has an empty state, a loading state and an error state', () => {
+    const { rerender } = render(
+      <DocumentList documents={[]} error={null} onDeleted={deletedSpy()} />,
+    )
     expect(screen.getByText('No documents yet')).toBeInTheDocument()
 
-    rerender(<DocumentList documents={null} error={null} onDeleted={noop()} />)
+    rerender(<DocumentList documents={null} error={null} onDeleted={deletedSpy()} />)
     expect(screen.getByRole('status')).toHaveTextContent('Loading your documents')
+
+    rerender(
+      <DocumentList documents={null} error="The server is not responding." onDeleted={deletedSpy()} />,
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('The server is not responding.')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })
