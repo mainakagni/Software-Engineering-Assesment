@@ -34,9 +34,12 @@ COPY backend/alembic.ini ./
 COPY backend/migrations ./migrations
 COPY backend/app ./app
 COPY --from=web /web/dist ./app/static
+# Sample documents for the demo account (python -m app.seed).
+COPY backend/evaluation/corpus ./evaluation/corpus
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=3 \
     CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/health/live' % os.environ.get('PORT', '8000'), timeout=2)"]
-# Render sets PORT; locally it defaults to 8000.
+# Render sets PORT; locally it defaults to 8000. On Render the command is python -m app.supervisor,
+# which runs the worker in this container too (see render.yaml).
 CMD ["sh", "-c", "exec uvicorn app.main:create_app --factory --host 0.0.0.0 --port ${PORT:-8000}"]
