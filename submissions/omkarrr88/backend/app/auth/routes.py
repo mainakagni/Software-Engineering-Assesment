@@ -12,6 +12,7 @@ from app.config import Settings
 from app.db.models import User
 from app.dependencies import DbSession, SettingsDep
 from app.envelope import Envelope, error_responses, ok
+from app.ratelimit.deps import enforce_auth_limit
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -28,7 +29,8 @@ def _token_for(user: User, settings: Settings) -> TokenOut:
     "/signup",
     status_code=201,
     response_model=Envelope[TokenOut],
-    responses=error_responses(409, 422),
+    responses=error_responses(409, 422, 429),
+    dependencies=[Depends(enforce_auth_limit)],
 )
 def signup(body: SignupRequest, session: DbSession, settings: SettingsDep) -> Envelope[TokenOut]:
     """Creates an account and returns an access token for it."""
@@ -37,7 +39,12 @@ def signup(body: SignupRequest, session: DbSession, settings: SettingsDep) -> En
     return ok(_token_for(user, settings))
 
 
-@router.post("/login", response_model=Envelope[TokenOut], responses=error_responses(401, 422))
+@router.post(
+    "/login",
+    response_model=Envelope[TokenOut],
+    responses=error_responses(401, 422, 429),
+    dependencies=[Depends(enforce_auth_limit)],
+)
 def login(body: LoginRequest, session: DbSession, settings: SettingsDep) -> Envelope[TokenOut]:
     """Exchanges an email and password for an access token."""
     user = service.authenticate(session, body.email, body.password)
@@ -45,7 +52,12 @@ def login(body: LoginRequest, session: DbSession, settings: SettingsDep) -> Enve
     return ok(_token_for(user, settings))
 
 
-@router.post("/token", response_model=OAuthTokenOut, responses=error_responses(401, 422))
+@router.post(
+    "/token",
+    response_model=OAuthTokenOut,
+    responses=error_responses(401, 422, 429),
+    dependencies=[Depends(enforce_auth_limit)],
+)
 def token(
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: DbSession,

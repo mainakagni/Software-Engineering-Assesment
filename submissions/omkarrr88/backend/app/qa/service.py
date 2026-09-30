@@ -1,7 +1,7 @@
 """Answering a question: check the scope, retrieve, generate, check the citations, store.
 
 `answer_question` is the pipeline itself and stores nothing, so an offline evaluation can run
-exactly what the API runs. `ask` adds the ownership checks and the history.
+exactly what the API runs. `ask` adds the ownership checks, the answer cache and the history.
 
 No transaction stays open during a provider call: the reads before each call end with a commit,
 which returns the connection to the pool while the embedding service or the model works.
@@ -24,6 +24,7 @@ from app.providers.embeddings import Embedder
 from app.providers.errors import ProviderError
 from app.providers.llm import LLMClient, LLMResult
 from app.providers.retry import call_with_retries
+from app.qa.cache import cache_key, find_cached
 from app.qa.cost import estimate_cost_usd, estimate_tokens
 from app.qa.grounding import NOT_FOUND_ANSWER, GroundedAnswer, ModelReply, ground, parse_reply
 from app.qa.prompt import ANSWER_SCHEMA, SYSTEM_PROMPT, build_user_prompt
@@ -57,7 +58,19 @@ def ask(
     started = time.perf_counter()
     _check_selection(session, user_id, document_ids)
     has_documents = document_ids is not None or _has_ready_documents(session, user_id)
+    key: str | None = None
+    earlier: Question | None = None
+    if has_documents and settings.answer_cache_ttl_hours > 0:
+        key = cache_key(session, user_id, question, document_ids, settings)
+        earlier = find_cached(session, user_id, key, ttl_hours=settings.answer_cache_ttl_hours)
     session.commit()
+
+    if earlier is not None:
+        record = _store_copy(session, user_id, question, document_ids, earlier, started)
+        logger.info(
+            "qa.cache_hit", extra={"question_id": str(record.id), "original_id": str(earlier.id)}
+        )
+        return record
     if not has_documents:
         result = _refusal(NO_DOCUMENTS_ANSWER, "no_documents", started)
     else:
@@ -65,23 +78,12 @@ def ask(
             session, user_id, question, document_ids,
             embedder=embedder, llm=llm, settings=settings, started=started,
         )  # fmt: skip
-    record = _store(session, user_id, question, document_ids, result)
-    logger.info(
-        "qa.answered",
-        extra={
-            "question_id": str(record.id),
-            "found": result.grounded.found,
-            "refused_by": result.refused_by,
-            "citations": len(result.grounded.citations),
-            "verified_citations": sum(c.quote_verified for c in result.grounded.citations),
-            "top_similarity": round(result.retrieved[0].similarity, 4)
-            if result.retrieved
-            else None,
-            "latency_ms": result.usage["latency_ms"],
-            "prompt_tokens": result.usage["prompt_tokens"],
-            "output_tokens": result.usage["output_tokens"],
-        },
-    )
+    # Only answers that were found are offered to the cache (see app.qa.cache).
+    record = _store(
+        session, user_id, question, document_ids, result,
+        key=key if result.grounded.found else None,
+    )  # fmt: skip
+    _log_answer(record, result)
     return record
 
 
@@ -244,13 +246,38 @@ def _usage(
     }
 
 
-def _refusal(answer: str, refused_by: Refusal, started: float) -> AnswerResult:
-    usage = {
+def _no_usage(started: float) -> dict[str, Any]:
+    """Usage of an answer that called no provider."""
+    return {
         "model": None, "prompt_tokens": 0, "output_tokens": 0, "thinking_tokens": 0,
         "total_tokens": 0, "embedding_tokens": 0, "retrieval_ms": 0, "generation_ms": 0,
         "latency_ms": _ms_since(started), "estimated_cost_usd": 0.0,
     }  # fmt: skip
-    return AnswerResult(GroundedAnswer(False, answer, []), [], None, usage, refused_by)
+
+
+def _refusal(answer: str, refused_by: Refusal, started: float) -> AnswerResult:
+    grounded = GroundedAnswer(found=False, answer=answer, citations=[])
+    return AnswerResult(grounded, [], None, _no_usage(started), refused_by)
+
+
+def _log_answer(record: Question, result: AnswerResult) -> None:
+    citations = result.grounded.citations
+    logger.info(
+        "qa.answered",
+        extra={
+            "question_id": str(record.id),
+            "found": result.grounded.found,
+            "refused_by": result.refused_by,
+            "citations": len(citations),
+            "verified_citations": sum(c.quote_verified for c in citations),
+            "top_similarity": round(result.retrieved[0].similarity, 4)
+            if result.retrieved
+            else None,
+            "latency_ms": result.usage["latency_ms"],
+            "prompt_tokens": result.usage["prompt_tokens"],
+            "output_tokens": result.usage["output_tokens"],
+        },
+    )
 
 
 def _store(
@@ -259,6 +286,8 @@ def _store(
     question: str,
     document_ids: Sequence[uuid.UUID] | None,
     result: AnswerResult,
+    *,
+    key: str | None,
 ) -> Question:
     citations = [
         {
@@ -283,6 +312,31 @@ def _store(
         document_ids=list(document_ids) if document_ids is not None else None,
         citations=citations,
         usage=result.usage,
+        cache_key=key,
+    )
+    session.add(record)
+    session.commit()
+    return record
+
+
+def _store_copy(
+    session: Session,
+    user_id: uuid.UUID,
+    question: str,
+    document_ids: Sequence[uuid.UUID] | None,
+    earlier: Question,
+    started: float,
+) -> Question:
+    """A cached answer, stored as its own history entry. Nothing was retrieved or generated."""
+    record = Question(
+        user_id=user_id,
+        question=question,
+        answer=earlier.answer,
+        found=earlier.found,
+        cached=True,
+        document_ids=list(document_ids) if document_ids is not None else None,
+        citations=earlier.citations,
+        usage=_no_usage(started),
     )
     session.add(record)
     session.commit()

@@ -17,6 +17,7 @@ from sqlalchemy import (
     LargeBinary,
     Text,
     UniqueConstraint,
+    false,
     func,
     text,
 )
@@ -168,6 +169,8 @@ class Question(Base):
     question: Mapped[str] = mapped_column(Text, nullable=False)
     answer: Mapped[str] = mapped_column(Text, nullable=False)
     found: Mapped[bool] = mapped_column(nullable=False)
+    # A copy of an earlier answer, served from the answer cache without calling the model.
+    cached: Mapped[bool] = mapped_column(nullable=False, default=False, server_default=false())
     document_ids: Mapped[list[uuid.UUID] | None] = mapped_column(ARRAY(UUID(as_uuid=True)))
     citations: Mapped[list[dict[str, Any]]] = mapped_column(
         JSONB, nullable=False, server_default=text("'[]'::jsonb")

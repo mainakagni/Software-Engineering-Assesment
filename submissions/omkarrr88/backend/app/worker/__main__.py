@@ -4,7 +4,6 @@ import os
 import signal
 import socket
 import threading
-from datetime import timedelta
 from functools import partial
 
 from app.config import get_settings
@@ -12,7 +11,7 @@ from app.db.session import make_session_factory
 from app.logging_config import configure_logging
 from app.providers.factory import build_embedder
 from app.worker.jobs import process_next_job
-from app.worker.queue import requeue_stale_jobs
+from app.worker.maintenance import run_maintenance
 from app.worker.runner import run_worker
 
 
@@ -37,12 +36,7 @@ def main() -> None:
         ),
         poll_interval=settings.worker_poll_interval_seconds,
         heartbeat_interval=settings.worker_heartbeat_seconds,
-        maintenance=partial(
-            requeue_stale_jobs,
-            stale_after=timedelta(minutes=settings.job_lock_timeout_minutes),
-            worker_stale_after=timedelta(seconds=settings.worker_stale_after_seconds),
-            max_attempts=settings.job_max_attempts,
-        ),
+        maintenance=partial(run_maintenance, settings=settings),
     )
 
 

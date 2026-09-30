@@ -66,6 +66,7 @@ class AnswerOut(BaseModel):
     question: str
     answer: str
     found: bool
+    cached: bool = Field(description="Served from the answer cache; the model was not called.")
     document_ids: list[uuid.UUID] | None = Field(description="The selection, if one was given.")
     citations: list[CitationOut]
     usage: UsageOut

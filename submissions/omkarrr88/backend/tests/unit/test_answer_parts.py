@@ -3,6 +3,7 @@
 import pytest
 
 from app.providers.errors import ProviderError
+from app.qa.cache import normalise_question
 from app.qa.cost import estimate_cost_usd, estimate_tokens
 from app.qa.grounding import (
     NOT_FOUND_ANSWER,
@@ -192,3 +193,14 @@ def test_cost_estimate_counts_thinking_as_output() -> None:
     assert cost == pytest.approx((1000 * 1.0 + 200 * 10.0 + 2000 * 0.5) / 1_000_000)
     assert estimate_tokens("abcdefgh") == 2
     assert estimate_tokens("abcdefghi") == 3
+
+
+# --- answer cache ---------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "variant",
+    ["What is the hotel limit?", "what is the   hotel limit", "  WHAT IS THE HOTEL LIMIT?! "],
+)
+def test_question_normalisation_for_the_cache(variant: str) -> None:
+    assert normalise_question(variant) == "what is the hotel limit"

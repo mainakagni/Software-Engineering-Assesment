@@ -17,26 +17,38 @@ def test_database_url_always_uses_psycopg(given: str, expected: str) -> None:
     assert make_test_settings(database_url=given).database_url == expected
 
 
+PRODUCTION = {"app_env": "production", "jwt_secret": "x" * 40, "trust_proxy_headers": True}
+
+
 def test_production_rejects_the_development_jwt_secret() -> None:
     with pytest.raises(ValidationError, match="JWT_SECRET"):
-        make_test_settings(app_env="production", jwt_secret=DEV_JWT_SECRET)
+        make_test_settings(**{**PRODUCTION, "jwt_secret": DEV_JWT_SECRET})
 
 
 def test_production_rejects_a_short_jwt_secret() -> None:
     with pytest.raises(ValidationError, match="JWT_SECRET"):
-        make_test_settings(app_env="production", jwt_secret="too-short")
+        make_test_settings(**{**PRODUCTION, "jwt_secret": "too-short"})
+
+
+def test_production_must_say_whether_it_is_behind_a_proxy() -> None:
+    with pytest.raises(ValidationError, match="TRUST_PROXY_HEADERS"):
+        make_test_settings(**{**PRODUCTION, "trust_proxy_headers": None})
+    assert (
+        make_test_settings(**{**PRODUCTION, "trust_proxy_headers": False}).app_env == "production"
+    )
+    assert make_test_settings().trust_proxy_headers is None  # outside production: not trusted
 
 
 @pytest.mark.parametrize("app_env", ["development", "production"])
 def test_gemini_providers_need_a_key(app_env: str) -> None:
     with pytest.raises(ValidationError, match="GEMINI_API_KEY"):
         make_test_settings(
-            app_env=app_env, jwt_secret="x" * 40, embedding_provider="gemini", gemini_api_key=None
+            **{**PRODUCTION, "app_env": app_env}, embedding_provider="gemini", gemini_api_key=None
         )
 
 
 def test_production_with_fake_providers_needs_no_key() -> None:
-    settings = make_test_settings(app_env="production", jwt_secret="x" * 40)
+    settings = make_test_settings(**PRODUCTION)
     assert settings.gemini_api_key is None
 
 

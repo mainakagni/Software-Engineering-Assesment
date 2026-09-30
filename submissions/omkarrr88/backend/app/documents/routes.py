@@ -2,7 +2,7 @@ import logging
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, File, Query, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
 
 from app.auth.deps import CurrentUser
 from app.dependencies import DbSession, SettingsDep
@@ -11,6 +11,7 @@ from app.documents.schemas import DocumentOut
 from app.documents.validation import read_limited, validate_upload
 from app.envelope import Envelope, PageMeta, error_responses, ok
 from app.logging_config import request_id_var
+from app.ratelimit.deps import enforce_upload_limits
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -20,7 +21,8 @@ router = APIRouter(prefix="/api/documents", tags=["documents"])
     "",
     status_code=202,
     response_model=Envelope[DocumentOut],
-    responses=error_responses(401, 409, 411, 413, 415, 422),
+    responses=error_responses(401, 409, 411, 413, 415, 422, 429),
+    dependencies=[Depends(enforce_upload_limits)],
 )
 def upload_document(
     user: CurrentUser,
