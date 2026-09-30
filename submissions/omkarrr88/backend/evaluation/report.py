@@ -31,6 +31,19 @@ def _fraction(summary: dict[str, Any], group: str, key: str) -> str:
     return f"{_pct(share)} ({round(share * count)}/{count})"
 
 
+def _latency(summary: dict[str, Any]) -> str:
+    values = [_get(summary, "latency_ms", key) for key in ("mean", "p50", "p95")]
+    return " / ".join("n/a" if value is None else str(value) for value in values) + " ms"
+
+
+def _retries(summary: dict[str, Any]) -> str:
+    count, wait_ms = (
+        _get(summary, "provider_retries", "count"),
+        _get(summary, "provider_retries", "wait_ms"),
+    )
+    return "n/a" if count is None else f"{count} ({(wait_ms or 0) / 1000:.0f} s)"
+
+
 ROWS: list[tuple[str, Callable[[dict[str, Any]], str]]] = [
     ("Answerable: correct answer", lambda s: _fraction(s, "answerable", "correct")),
     ("Answerable: wrongly refused", lambda s: _fraction(s, "answerable", "wrongly_refused")),
@@ -48,10 +61,8 @@ ROWS: list[tuple[str, Callable[[dict[str, Any]], str]]] = [
     ("Evidence retrieved in top k", lambda s: _pct(_get(s, "retrieval", "hit_rate"))),
     ("Retrieval MRR", lambda s: f"{_get(s, 'retrieval', 'mrr')}"),
     ("All questions handled correctly", lambda s: _pct(_get(s, "overall_behaved"))),
-    (
-        "Latency p50 / p95",
-        lambda s: f"{_get(s, 'latency_ms', 'p50')} / {_get(s, 'latency_ms', 'p95')} ms",
-    ),
+    ("Latency mean / p50 / p95", lambda s: _latency(s)),
+    ("Provider retries (time waited)", lambda s: _retries(s)),
     ("Tokens per question", lambda s: f"{_get(s, 'tokens_per_question')}"),
     ("Estimated cost of the run", lambda s: f"${_get(s, 'cost_usd'):.4f}"),
 ]

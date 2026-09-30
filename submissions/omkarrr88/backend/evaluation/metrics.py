@@ -27,9 +27,11 @@ class Scored:
     evidence_rank: int | None  # 1-based rank of the first retrieved chunk holding the evidence
     cited_evidence: bool | None  # a citation's passage holds the evidence
     cited_source: bool | None  # a citation comes from the expected document
-    latency_ms: int
+    latency_ms: int  # includes any time spent waiting out provider rate limits
     total_tokens: int
     cost_usd: float
+    retries: int = 0
+    retry_wait_ms: int = 0
 
 
 def facts_matched(answer: str, expected_facts: Sequence[Sequence[str]]) -> bool:
@@ -85,6 +87,8 @@ def score(question: EvalQuestion, record: dict[str, Any]) -> Scored:
         latency_ms=record["usage"]["latency_ms"],
         total_tokens=record["usage"]["total_tokens"],
         cost_usd=record["usage"]["estimated_cost_usd"],
+        retries=record.get("retries", 0),
+        retry_wait_ms=record.get("retry_wait_ms", 0),
     )
 
 
@@ -131,7 +135,15 @@ def summarise(scored: Sequence[Scored], top_k: int) -> dict[str, Any]:
             "mrr": round(statistics.fmean(reciprocal_ranks), 3) if reciprocal_ranks else None,
         },
         "overall_behaved": _share([s.behaved for s in scored]),
-        "latency_ms": {"p50": _percentile(latencies, 0.5), "p95": _percentile(latencies, 0.95)},
+        "latency_ms": {
+            "mean": round(statistics.fmean(latencies)) if latencies else None,
+            "p50": _percentile(latencies, 0.5),
+            "p95": _percentile(latencies, 0.95),
+        },
+        "provider_retries": {
+            "count": sum(s.retries for s in scored),
+            "wait_ms": sum(s.retry_wait_ms for s in scored),
+        },
         "tokens_per_question": (
             round(statistics.fmean(s.total_tokens for s in scored), 1) if scored else None
         ),

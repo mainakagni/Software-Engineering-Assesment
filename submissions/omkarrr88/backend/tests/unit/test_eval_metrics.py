@@ -1,9 +1,11 @@
 """Scoring answers and summarising runs."""
 
+import logging
 from typing import Any
 
 from evaluation.dataset import EvalQuestion
 from evaluation.metrics import evidence_rank, facts_matched, score, summarise
+from evaluation.run import RetryCounter
 
 EVIDENCE = "Hotel stays are capped at $180 per night in domestic locations"
 
@@ -22,14 +24,20 @@ def _question(type_: str = "answerable", **overrides: Any) -> EvalQuestion:
     return EvalQuestion(**values)
 
 
-def _record(found: bool, answer: str, cited: str | None = None, retrieved: list[str] | None = None):
+def _record(
+    found: bool,
+    answer: str,
+    cited: str | None = None,
+    retrieved: list[str] | None = None,
+    latency_ms: int = 900,
+) -> dict[str, Any]:
     citations = [{"document_name": "policy.md", "passage": cited}] if cited else []
     return {
         "found": found,
         "answer": answer,
         "citations": citations,
         "retrieved": [{"text": text} for text in (retrieved or [])],
-        "usage": {"latency_ms": 900, "total_tokens": 1200, "estimated_cost_usd": 0.0004},
+        "usage": {"latency_ms": latency_ms, "total_tokens": 1200, "estimated_cost_usd": 0.0004},
     }
 
 
@@ -96,3 +104,25 @@ def test_summary() -> None:
     assert summary["retrieval"] == {"top_k": 6, "hit_rate": 1.0, "mrr": 0.75}
     assert summary["overall_behaved"] == 0.5
     assert summary["cost_usd"] == 0.0016
+
+
+def test_latency_includes_the_mean_and_retry_waits() -> None:
+    slow = _record(False, "Not found.", latency_ms=4100) | {"retries": 2, "retry_wait_ms": 3000}
+    scored = [score(_question("unanswerable"), _record(False, "No.")), score(_question(), slow)]
+    summary = summarise(scored, top_k=6)
+    assert summary["latency_ms"] == {"mean": 2500, "p50": 900, "p95": 4100}
+    assert summary["provider_retries"] == {"count": 2, "wait_ms": 3000}
+
+
+def test_retries_are_counted_per_question() -> None:
+    counter = RetryCounter()
+    logger = logging.getLogger("tests.retry_counter")
+    logger.addHandler(counter)
+    try:
+        logger.warning("provider.retry", extra={"delay_seconds": 1.25})
+        logger.warning("provider.retry", extra={"delay_seconds": 0.5})
+        logger.warning("something.else")
+        assert counter.take() == {"retries": 2, "retry_wait_ms": 1750}
+        assert counter.take() == {"retries": 0, "retry_wait_ms": 0}
+    finally:
+        logger.removeHandler(counter)

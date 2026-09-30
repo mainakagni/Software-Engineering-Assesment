@@ -55,6 +55,26 @@ def eval_settings(args: argparse.Namespace) -> Settings:
     return base.model_copy(update=overrides)
 
 
+class RetryCounter(logging.Handler):
+    """Counts provider retries and the time waited on them, so slow answers can be explained."""
+
+    def __init__(self) -> None:
+        super().__init__(level=logging.WARNING)
+        self.retries = 0
+        self.wait_seconds = 0.0
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if record.getMessage() == "provider.retry":
+            self.retries += 1
+            self.wait_seconds += float(getattr(record, "delay_seconds", 0.0))
+
+    def take(self) -> dict[str, int]:
+        """The counts since the last call, which start again from zero."""
+        counts = {"retries": self.retries, "retry_wait_ms": round(self.wait_seconds * 1000)}
+        self.retries, self.wait_seconds = 0, 0.0
+        return counts
+
+
 def to_record(question: EvalQuestion, result: AnswerResult) -> dict[str, Any]:
     """Everything about one answer, with full passage texts (needed for scoring)."""
     return {
@@ -156,6 +176,9 @@ def main(argv: list[str] | None = None) -> int:
     records: list[dict[str, Any]] = []
     scores: list[Scored] = []
     stopped_early = None
+    retry_counter = RetryCounter()
+    logging.getLogger("app.providers.retry").addHandler(retry_counter)
+    retry_counter.take()  # retries while processing the corpus are not part of any answer
     for number, question in enumerate(questions, start=1):
         try:
             with session_factory() as session:
@@ -167,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
             stopped_early = f"{question.id}: {exc.message}"
             logger.error("evaluation.stopped", extra={"reason": stopped_early})
             break
-        record = to_record(question, result)
+        record = {**to_record(question, result), **retry_counter.take()}
         scored = score(question, record)
         scores.append(scored)
         records.append({**compact(record, question.evidence), "score": asdict(scored)})
