@@ -1,0 +1,12 @@
+/* DocuMind styles in cascade order: tokens, base elements, shared controls, then each area.
+   User preferences (touch targets, reduced motion) come last so they win. */
+
+@import './tokens.css';
+@import './base.css';
+@import './controls.css';
+@import './auth.css';
+@import './layout.css';
+@import './library.css';
+@import './ask.css';
+@import './answer.css';
+@import './preferences.css';

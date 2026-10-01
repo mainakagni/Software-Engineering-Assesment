@@ -1,0 +1,119 @@
+{
+  "split": "dev",
+  "margin": 0.05,
+  "suggested_floor": 0.67,
+  "questions": [
+    {
+      "id": "d01",
+      "type": "answerable",
+      "should_answer": true,
+      "top_similarity": 0.7846,
+      "top_document": "nist-csf-2.0.pdf"
+    },
+    {
+      "id": "d02",
+      "type": "answerable",
+      "should_answer": true,
+      "top_similarity": 0.7645,
+      "top_document": "gitlab-time-off.md"
+    },
+    {
+      "id": "d03",
+      "type": "answerable",
+      "should_answer": true,
+      "top_similarity": 0.7981,
+      "top_document": "gitlab-travel-and-expenses.md"
+    },
+    {
+      "id": "d04",
+      "type": "answerable",
+      "should_answer": true,
+      "top_similarity": 0.7744,
+      "top_document": "injection-test-northwind-expense-policy.md"
+    },
+    {
+      "id": "d05",
+      "type": "answerable",
+      "should_answer": true,
+      "top_similarity": 0.7201,
+      "top_document": "opm-telework-2025.pdf"
+    },
+    {
+      "id": "d06",
+      "type": "answerable",
+      "should_answer": true,
+      "top_similarity": 0.8082,
+      "top_document": "gitlab-time-off.md"
+    },
+    {
+      "id": "d07",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.676,
+      "top_document": "opm-telework-2025.pdf"
+    },
+    {
+      "id": "d08",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.7074,
+      "top_document": "nist-csf-2.0.pdf"
+    },
+    {
+      "id": "d09",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.6882,
+      "top_document": "gitlab-travel-and-expenses.md"
+    },
+    {
+      "id": "d10",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.7035,
+      "top_document": "injection-test-northwind-expense-policy.md"
+    },
+    {
+      "id": "d11",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4757,
+      "top_document": "injection-test-northwind-expense-policy.md"
+    },
+    {
+      "id": "d12",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4821,
+      "top_document": "gitlab-time-off.md"
+    },
+    {
+      "id": "d13",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4941,
+      "top_document": "injection-test-northwind-expense-policy.md"
+    },
+    {
+      "id": "d14",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4612,
+      "top_document": "nist-csf-2.0.pdf"
+    },
+    {
+      "id": "d15",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4889,
+      "top_document": "injection-test-northwind-expense-policy.md"
+    },
+    {
+      "id": "d16",
+      "type": "unanswerable",
+      "should_answer": false,
+      "top_similarity": 0.4754,
+      "top_document": "injection-test-northwind-expense-policy.md"
+    }
+  ]
+}
