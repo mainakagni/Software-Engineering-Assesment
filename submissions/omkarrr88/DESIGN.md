@@ -512,3 +512,4 @@ The sections above are the plan as written before the code. This is what changed
     which errs on the safe side.
 16. **Not built: hybrid search and re-ranking** (section 8.6). There was not enough time to build them and
     measure them properly. They are the first items under next steps in the README and in `EVALUATION.md`.
+17. **Not done: the demo video** (section 14). There was not enough time to record it.
