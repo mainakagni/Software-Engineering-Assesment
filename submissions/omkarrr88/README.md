@@ -3,7 +3,7 @@
 Ask questions about your own documents and get answers that cite the exact passage they came from.
 
 - **Live app:** https://documind-553r.onrender.com (API docs at https://documind-553r.onrender.com/docs)
-- **Demo video:** _(Google Drive link, added before submission)_
+- **Demo video:** not recorded; I ran out of time.
 - **Resume:** [`submissions/omkarrr88/RESUME.pdf`](RESUME.pdf)
 
 The live app runs on Render's free plan. After 15 minutes without traffic it goes to sleep, and the first
