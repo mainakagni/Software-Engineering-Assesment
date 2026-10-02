@@ -1,0 +1,41 @@
+This document describes the Python programming language and its key features.
+
+Python is a high-level, interpreted programming language known for its simplicity and readability.
+It was created by Guido van Rossum and first released in 1991.
+
+Python supports multiple programming paradigms including procedural, object-oriented, and functional programming.
+The language uses indentation to define code blocks, making it visually clean and readable.
+
+Key features of Python include:
+- Dynamic typing: variables do not need type declarations
+- Automatic memory management via garbage collection
+- A large standard library often described as "batteries included"
+- Strong community and ecosystem with over 400,000 packages on PyPI
+- Cross-platform compatibility: runs on Windows, macOS, and Linux
+
+Python is widely used in:
+- Web development (Django, Flask, FastAPI frameworks)
+- Data science and machine learning (NumPy, pandas, scikit-learn, TensorFlow)
+- Automation and scripting
+- Scientific computing
+- System administration
+
+The Python Software Foundation (PSF) governs the language. The current major version is Python 3.
+Python 2 reached end-of-life on January 1, 2020.
+
+Python uses PEP (Python Enhancement Proposals) for language design decisions.
+The style guide for Python code is PEP 8, which recommends 4-space indentation,
+maximum line length of 79 characters, and clear naming conventions.
+
+The Python Package Index (PyPI) is the official repository for third-party Python packages.
+Packages are installed using pip, the standard package manager.
+
+Python's Global Interpreter Lock (GIL) is a mutex that protects access to Python objects,
+preventing multiple threads from executing Python bytecodes simultaneously.
+This limits true parallelism for CPU-bound tasks but does not affect I/O-bound workloads.
+
+For CPU-bound parallelism, Python developers use the multiprocessing module or
+external tools like Celery for distributed task processing.
+
+Virtual environments in Python are created using the venv module (Python 3.3+),
+allowing project-specific package installations isolated from the system Python.

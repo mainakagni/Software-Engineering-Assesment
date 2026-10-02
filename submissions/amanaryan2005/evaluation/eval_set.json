@@ -1,0 +1,162 @@
+[
+  {
+    "id": 1,
+    "question": "What year was Python first released?",
+    "expected_answer": "1991",
+    "answerable": true,
+    "category": "factual",
+    "relevant_passage": "It was created by Guido van Rossum and first released in 1991."
+  },
+  {
+    "id": 2,
+    "question": "What is Python's style guide called?",
+    "expected_answer": "PEP 8",
+    "answerable": true,
+    "category": "factual",
+    "relevant_passage": "The style guide for Python code is PEP 8"
+  },
+  {
+    "id": 3,
+    "question": "What is the Python Package Index?",
+    "expected_answer": "PyPI - official repository for third-party Python packages",
+    "answerable": true,
+    "category": "factual",
+    "relevant_passage": "The Python Package Index (PyPI) is the official repository for third-party Python packages."
+  },
+  {
+    "id": 4,
+    "question": "What is the Global Interpreter Lock?",
+    "expected_answer": "A mutex that protects access to Python objects, preventing multiple threads from executing Python bytecodes simultaneously",
+    "answerable": true,
+    "category": "conceptual",
+    "relevant_passage": "Python's Global Interpreter Lock (GIL) is a mutex that protects access to Python objects"
+  },
+  {
+    "id": 5,
+    "question": "When did Python 2 reach end-of-life?",
+    "expected_answer": "January 1, 2020",
+    "answerable": true,
+    "category": "factual",
+    "relevant_passage": "Python 2 reached end-of-life on January 1, 2020."
+  },
+  {
+    "id": 6,
+    "question": "What module is used to create virtual environments in Python 3?",
+    "expected_answer": "venv module",
+    "answerable": true,
+    "category": "factual",
+    "relevant_passage": "Virtual environments in Python are created using the venv module (Python 3.3+)"
+  },
+  {
+    "id": 7,
+    "question": "What is the recommended line length in PEP 8?",
+    "expected_answer": "79 characters",
+    "answerable": true,
+    "category": "factual",
+    "relevant_passage": "maximum line length of 79 characters"
+  },
+  {
+    "id": 8,
+    "question": "What Python paradigms are supported?",
+    "expected_answer": "Procedural, object-oriented, and functional programming",
+    "answerable": true,
+    "category": "listing",
+    "relevant_passage": "Python supports multiple programming paradigms including procedural, object-oriented, and functional programming."
+  },
+  {
+    "id": 9,
+    "question": "How does Python define code blocks?",
+    "expected_answer": "Using indentation",
+    "answerable": true,
+    "category": "conceptual",
+    "relevant_passage": "The language uses indentation to define code blocks"
+  },
+  {
+    "id": 10,
+    "question": "What is PEP 8's recommended indentation?",
+    "expected_answer": "4-space indentation",
+    "answerable": true,
+    "category": "factual",
+    "relevant_passage": "PEP 8, which recommends 4-space indentation"
+  },
+  {
+    "id": 11,
+    "question": "What is the capital of France?",
+    "expected_answer": "I couldn't find this in your documents.",
+    "answerable": false,
+    "category": "unanswerable",
+    "relevant_passage": null
+  },
+  {
+    "id": 12,
+    "question": "What is the price of Python certification exams?",
+    "expected_answer": "I couldn't find this in your documents.",
+    "answerable": false,
+    "category": "unanswerable",
+    "relevant_passage": null
+  },
+  {
+    "id": 13,
+    "question": "Who is the CEO of the Python Software Foundation?",
+    "expected_answer": "I couldn't find this in your documents.",
+    "answerable": false,
+    "category": "unanswerable",
+    "relevant_passage": null
+  },
+  {
+    "id": 14,
+    "question": "What is the latest patch version of Python 3.11?",
+    "expected_answer": "I couldn't find this in your documents.",
+    "answerable": false,
+    "category": "unanswerable",
+    "relevant_passage": null
+  },
+  {
+    "id": 15,
+    "question": "How many packages are on npm?",
+    "expected_answer": "I couldn't find this in your documents.",
+    "answerable": false,
+    "category": "unanswerable",
+    "relevant_passage": null
+  },
+  {
+    "id": 16,
+    "question": "What tool is used to install Python packages?",
+    "expected_answer": "pip",
+    "answerable": true,
+    "category": "factual",
+    "relevant_passage": "Packages are installed using pip, the standard package manager."
+  },
+  {
+    "id": 17,
+    "question": "Who governs the Python language?",
+    "expected_answer": "Python Software Foundation (PSF)",
+    "answerable": true,
+    "category": "factual",
+    "relevant_passage": "The Python Software Foundation (PSF) governs the language."
+  },
+  {
+    "id": 18,
+    "question": "Does the GIL affect I/O-bound workloads?",
+    "expected_answer": "No, it does not affect I/O-bound workloads",
+    "answerable": true,
+    "category": "factual",
+    "relevant_passage": "does not affect I/O-bound workloads"
+  },
+  {
+    "id": 19,
+    "question": "What is the current major version of Python?",
+    "expected_answer": "Python 3",
+    "answerable": true,
+    "category": "factual",
+    "relevant_passage": "The current major version is Python 3."
+  },
+  {
+    "id": 20,
+    "question": "What does the document say about Java?",
+    "expected_answer": "I couldn't find this in your documents.",
+    "answerable": false,
+    "category": "unanswerable",
+    "relevant_passage": null
+  }
+]

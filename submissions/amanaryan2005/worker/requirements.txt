@@ -1,0 +1,8 @@
+# Worker Dependencies — DocuMind
+celery==5.4.0
+redis==5.0.6
+psycopg2-binary==2.9.9
+pymupdf==1.24.5
+google-genai>=1.0.0
+python-dotenv==1.0.1
+kombu==5.3.5
