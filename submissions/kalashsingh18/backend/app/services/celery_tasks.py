@@ -59,8 +59,7 @@ def process_document_task(self, document_id_str: str):
                     embedding=vector,
                 )
                 db.add(chunk_record)
-            db.flush()  # write batch without committing the full transaction
-
+            db.flush()  
         document.status = "ready"
         db.commit()
         logger.info(f"Successfully processed document {document.filename} ({len(chunks)} chunks).")

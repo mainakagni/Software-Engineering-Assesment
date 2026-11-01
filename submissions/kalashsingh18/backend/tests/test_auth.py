@@ -10,7 +10,6 @@ def test_password_hashing():
 
 
 def test_signup_and_login_flow(client):
-    # 1. Signup
     signup_res = client.post(
         "/api/v1/auth/signup",
         json={

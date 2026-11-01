@@ -31,7 +31,6 @@ def get_embedding(text: str) -> List[float]:
     if not text.strip():
         return [0.0] * settings.EMBEDDING_DIMENSION
 
-    # Use Gemini API if configured
     if settings.LLM_PROVIDER == "gemini" and settings.GEMINI_API_KEY:
         try:
             import google.generativeai as genai

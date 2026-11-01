@@ -6,9 +6,7 @@ from app.models import DocumentChunk, Document
 
 logger = logging.getLogger("documind.vector_store")
 
-# Minimum cosine-similarity score for a chunk to be considered relevant.
-# Cosine distance returned by pgvector is in [0, 2]; similarity = 1 - distance/2.
-# We reject chunks whose similarity is below this threshold.
+
 RELEVANCE_THRESHOLD = 0.25
 
 
@@ -19,14 +17,7 @@ def search_similar_chunks(
     top_k: int = 6,
     document_ids: Optional[List[uuid.UUID]] = None,
 ) -> List[Dict[str, Any]]:
-    """
-    Perform a cosine-similarity vector search, returning up to `top_k` chunks
-    that surpass `RELEVANCE_THRESHOLD`.
-
-    Each result dict contains:
-        chunk_id, document_id, document_name, page_number,
-        chunk_index, content, similarity_score
-    """
+   
     try:
         base_query = (
             db.query(DocumentChunk, Document.filename)
@@ -43,9 +34,15 @@ def search_similar_chunks(
             )
 
         bind = db.get_bind()
-        if "postgresql" in str(bind.url):
-            # pgvector cosine_distance returns 0 = identical, 2 = opposite
-            # Fetch top_k * 2 then filter by threshold so we still get top_k after pruning
+        try:
+            dialect_name = bind.engine.dialect.name
+        except AttributeError:
+            try:
+                dialect_name = str(bind.url)  # SQLAlchemy 1.x fallback
+            except AttributeError:
+                dialect_name = ""
+
+        if "postgresql" in dialect_name:
             raw = (
                 base_query
                 .order_by(DocumentChunk.embedding.cosine_distance(query_vector))
@@ -55,7 +52,6 @@ def search_similar_chunks(
 
             matched: List[Dict[str, Any]] = []
             for chunk, doc_name in raw:
-                # Calculate the distance then derive similarity
                 try:
                     distance = float(
                         db.execute(
@@ -67,7 +63,7 @@ def search_similar_chunks(
                     )
                     similarity = 1.0 - distance / 2.0
                 except Exception:
-                    # If inline distance query fails, include chunk with unknown score
+
                     similarity = 1.0  # assume relevant
 
                 if similarity >= RELEVANCE_THRESHOLD:
@@ -86,7 +82,6 @@ def search_similar_chunks(
             return matched
 
         else:
-            # Fallback for SQLite (unit tests): return as-is with dummy score
             all_chunks = base_query.limit(top_k).all()
             return [
                 {

@@ -115,7 +115,6 @@ Instructions:
 5. If the question is completely unrelated to the uploaded documents or conversation history, reply exactly: "{OUT_OF_CONTEXT_MESSAGE}"
 6. When citing facts from documents, cite inline using [Doc: <document_name>, Page: <page_number>]."""
 
-    # 1. Call Groq API if configured
     if settings.LLM_PROVIDER == "groq" and settings.GROQ_API_KEY:
         try:
             url = f"{settings.GROQ_API_BASE.rstrip('/')}/chat/completions"
@@ -146,7 +145,6 @@ Instructions:
             comp_tokens = usage_data.get("completion_tokens", len(answer) // 4)
             total_tokens = prompt_tokens + comp_tokens
 
-            # Groq Llama 3.3 70B pricing: ~$0.59 / 1M prompt tokens, $0.79 / 1M completion tokens
             cost = (prompt_tokens * 0.00000059) + (comp_tokens * 0.00000079)
             latency_ms = (time.time() - start_time) * 1000
 
@@ -283,7 +281,6 @@ Instructions:
 5. If the question is completely unrelated to the uploaded documents or conversation history, reply exactly: "{OUT_OF_CONTEXT_MESSAGE}"
 6. When citing facts from documents, cite inline using [Doc: <document_name>, Page: <page_number>]."""
 
-    # Stream from Groq if configured
     if settings.LLM_PROVIDER == "groq" and settings.GROQ_API_KEY:
         try:
             url = f"{settings.GROQ_API_BASE.rstrip('/')}/chat/completions"
@@ -326,7 +323,6 @@ Instructions:
         except Exception as e:
             logger.error(f"Streaming Groq call failed: {e}. Falling back to non-streaming.")
 
-    # Fallback to standard generator
     answer, usage = generate_grounded_answer(question, retrieved_chunks, chat_history)
     yield f"data: {json.dumps({'type': 'token', 'token': answer})}\n\n"
     yield f"data: {json.dumps({'type': 'done', 'citations': [{'document_name': c['document_name'], 'page_number': c['page_number'], 'passage_excerpt': c['content'][:250]} for c in retrieved_chunks], 'usage': usage})}\n\n"

@@ -16,20 +16,12 @@ def answer_question(
     document_ids: Optional[List[uuid.UUID]] = None,
     chat_history: Optional[List[Dict[str, str]]] = None,
 ) -> Dict[str, Any]:
-    """
-    Full RAG pipeline:
-      1. Embed the query.
-      2. Retrieve top-k semantically similar chunks (with relevance threshold).
-      3. Generate a grounded answer via the configured LLM provider.
-      4. Build citations only from chunks that passed the threshold.
-      5. Persist the query log.
-    """
+   
     start_time = time.time()
 
-    # 1. Embed the query with the correct task_type=retrieval_query
     query_vector = get_query_embedding(question)
 
-    # 2. Retrieve similar chunks (already filtered by relevance threshold inside vector_store)
+    # 
     retrieved_chunks = search_similar_chunks(
         db=db,
         user_id=user_id,
@@ -38,13 +30,12 @@ def answer_question(
         document_ids=document_ids,
     )
 
-    # 3. Generate the answer
+
     answer, usage = generate_grounded_answer(
         question, retrieved_chunks, chat_history=chat_history
     )
 
-    # 4. Build citations — only for non-refusal answers and chunks that were
-    #    actually retrieved (all of them already passed RELEVANCE_THRESHOLD).
+
     is_refusal = answer.strip() in (REFUSAL_MESSAGE, OUT_OF_CONTEXT_MESSAGE)
 
     citations: List[Dict[str, Any]] = []
@@ -67,7 +58,6 @@ def answer_question(
                 "similarity_score": c.get("similarity_score", None),
             })
 
-    # 5. Persist the query log
     log = QueryLog(
         user_id=user_id,
         question=question,

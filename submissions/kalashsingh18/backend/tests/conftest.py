@@ -8,7 +8,7 @@ from app.database import Base, get_db
 from app.models.user import User
 from app.utils.security import hash_password, create_access_token
 
-# In-memory SQLite for fast, isolated test suite
+
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(

@@ -5,7 +5,6 @@ from pypdf import PdfReader
 
 
 def extract_text_from_pdf(file_bytes: bytes) -> List[Dict[str, Any]]:
-    """Extract text per-page from a PDF file."""
     pages_data = []
     reader = PdfReader(io.BytesIO(file_bytes))
     for idx, page in enumerate(reader.pages):
@@ -23,11 +22,7 @@ def extract_text_from_pdf(file_bytes: bytes) -> List[Dict[str, Any]]:
 
 
 def extract_text_from_plain(file_bytes: bytes) -> List[Dict[str, Any]]:
-    """
-    Extract text from plain-text / Markdown files.
-    Simulates pages by splitting on '---' page-break markers or every
-    ~3 000 characters of prose so that page_number metadata is meaningful.
-    """
+   
     try:
         content = file_bytes.decode("utf-8")
     except UnicodeDecodeError:
@@ -37,7 +32,6 @@ def extract_text_from_plain(file_bytes: bytes) -> List[Dict[str, Any]]:
     if not content:
         return []
 
-    # Honour explicit page-break markers (--- on its own line)
     raw_pages = re.split(r"\n\s*---\s*\n", content)
     if len(raw_pages) > 1:
         return [
@@ -46,7 +40,6 @@ def extract_text_from_plain(file_bytes: bytes) -> List[Dict[str, Any]]:
             if p.strip()
         ]
 
-    # Simulate pages: split on paragraph boundaries every ~3 000 chars
     PAGE_CHAR_LIMIT = 3000
     pages_data = []
     page_num = 1
@@ -78,16 +71,10 @@ def extract_text_from_plain(file_bytes: bytes) -> List[Dict[str, Any]]:
     return pages_data
 
 
-# --------------------------------------------------------------------------- #
-# Sentence-boundary aware chunker                                               #
-# --------------------------------------------------------------------------- #
-
-# Regex that splits on sentence-ending punctuation followed by whitespace
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
 
 def _split_into_sentences(text: str) -> List[str]:
-    """Split text into sentences, keeping section headers as their own unit."""
     sentences = _SENTENCE_SPLIT.split(text)
     result = []
     for s in sentences:
@@ -102,19 +89,7 @@ def chunk_text(
     chunk_size: int = 500,
     chunk_overlap: int = 100,
 ) -> List[Dict[str, Any]]:
-    """
-    Sentence-aware chunker.
-
-    Each chunk is a contiguous window of sentences/tokens from a single page.
-    Overlap is implemented by re-including the last `chunk_overlap` characters
-    worth of sentences when starting a new chunk on the same page.
-
-    Returns a list of dicts:
-        chunk_index  – 0-based index per document (reset per document call)
-        page_number  – source page
-        content      – chunk text
-        char_start   – character offset from page start (useful for debugging)
-    """
+  
     chunks: List[Dict[str, Any]] = []
     global_idx = 0
 
@@ -148,7 +123,7 @@ def chunk_text(
                     })
                     global_idx += 1
 
-                # Carry-over: keep trailing sentences that fit within overlap budget
+    
                 overlap_budget = chunk_overlap
                 overlap_sentences: List[str] = []
                 for s in reversed(current_sentences):
@@ -165,7 +140,6 @@ def chunk_text(
             current_sentences.append(sent)
             current_len += sent_len
 
-        # Emit any remaining sentences as the final chunk for this page
         if current_sentences:
             chunk_text_str = " ".join(current_sentences).strip()
             if chunk_text_str:
