@@ -5,7 +5,7 @@ from app.celery_app import celery_app
 from app.database import SessionLocal
 from app.models.document import Document
 from app.models.chunk import DocumentChunk
-from app.utils.chunker import extract_text_from_pdf, extract_text_from_plain, chunk_text
+from app.rag.chunker import extract_text_from_pdf, extract_text_from_plain, chunk_text
 from app.utils.embeddings import get_embedding
 
 logger = logging.getLogger("documind.worker")
@@ -43,18 +43,23 @@ def process_document_task(self, document_id_str: str):
             raise ValueError("No readable text found in document.")
 
         db.query(DocumentChunk).filter(DocumentChunk.document_id == doc_id).delete()
+        db.flush()
 
-        for item in chunks:
-            vector = get_embedding(item["content"])
-            chunk_record = DocumentChunk(
-                document_id=doc_id,
-                user_id=document.user_id,
-                chunk_index=item["chunk_index"],
-                page_number=item["page_number"],
-                content=item["content"],
-                embedding=vector
-            )
-            db.add(chunk_record)
+        BATCH_SIZE = 50
+        for batch_start in range(0, len(chunks), BATCH_SIZE):
+            batch = chunks[batch_start: batch_start + BATCH_SIZE]
+            for item in batch:
+                vector = get_embedding(item["content"])
+                chunk_record = DocumentChunk(
+                    document_id=doc_id,
+                    user_id=document.user_id,
+                    chunk_index=item["chunk_index"],
+                    page_number=item["page_number"],
+                    content=item["content"],
+                    embedding=vector,
+                )
+                db.add(chunk_record)
+            db.flush()  # write batch without committing the full transaction
 
         document.status = "ready"
         db.commit()

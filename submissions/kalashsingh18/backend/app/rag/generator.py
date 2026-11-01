@@ -80,7 +80,6 @@ def generate_grounded_answer(
     start_time = time.time()
     clean_q = question.strip().lower().rstrip("?!.,")
 
-    # Check for conversational greeting or general questions
     if clean_q in GREETING_WORDS or clean_q.startswith("hello") or clean_q.startswith("hi "):
         latency_ms = (time.time() - start_time) * 1000
         return GREETING_RESPONSE, {
