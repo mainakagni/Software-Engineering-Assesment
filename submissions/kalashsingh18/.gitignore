@@ -1,0 +1,37 @@
+# Environment and Secrets
+.env
+*.env
+*.key
+*.pem
+
+# Python
+**/__pycache__/
+__pycache__/
+**/*.py[cod]
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+**/.pytest_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & Frontend
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+
+# Uploads and temporary data
+uploads/
+*.pdf
+!evaluation/docs/*.md
+!evaluation/docs/*.txt
+
+# OS
+.DS_Store
+Thumbs.db

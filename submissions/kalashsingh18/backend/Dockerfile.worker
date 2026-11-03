@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN python -m pip install --no-cache-dir --retries 10 --timeout 300 -r requirements.txt
+
+COPY . .
+
+CMD ["celery", "-A", "app.celery_app.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
